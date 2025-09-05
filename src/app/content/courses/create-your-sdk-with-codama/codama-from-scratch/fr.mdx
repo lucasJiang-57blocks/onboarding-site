@@ -1,0 +1,231 @@
+import { ArticleSection } from "../../../../components/ArticleSection/ArticleSection";
+
+# Construire votre IDL Codama à partir de zéro
+
+Construire un IDL Codama à partir de zéro signifie créer l'arborescence complète des nœuds pour votre programme. Pour le faire efficacement, examinons les types de nœuds disponibles.
+
+<ArticleSection name="Types de nœuds" id="node-types" level="h2" />
+
+### Nœud de valeur
+
+Pour transmettre des valeurs spécifiques à un nœud, nous utilisons `ValueNode`. Ce type représente tous les nœuds de valeur disponibles qui peuvent contenir différents types de données.
+
+[Ici](https://github.com/codama-idl/codama/blob/main/packages/nodes/docs/valueNodes/README.md) vous pouvez trouver une documentation détaillée sur toutes les valeurs disponibles.
+
+> `ValueNode` est un alias de type et ne peut pas être utilisé directement comme nœud. Lorsqu'un `ValueNode` est requis, utilisez plutôt l'un des types de nœuds de valeur spécifiques.
+
+### Nœud de type
+
+Pour définir la structure et la forme des données, nous utilisons `TypeNode`. Ces nœuds décrivent quel type de données est attendu : comme des nombres, des chaînes de caractères, des structures, des tableaux ou des types personnalisés.
+
+Ils définissent le schéma sans contenir de valeurs réelles.
+
+[Ici](https://github.com/codama-idl/codama/blob/main/packages/nodes/docs/typeNodes/README.md) vous pouvez trouver une documentation détaillée sur tous les types disponibles.
+
+> `TypeNode` est un alias de type et ne peut pas être utilisé directement comme nœud. Lorsqu'un `TypeNode` est requis, utilisez plutôt l'un des types de nœuds de type spécifiques.
+
+### Nœud discriminateur
+
+Pour différencier les comptes et les instructions dans notre programme, nous utilisons des discriminateurs. Il existe différentes méthodes pour y parvenir, et le `DiscriminatorNode` fournit toutes les options disponibles :
+
+- `ConstantDiscriminatorNode` : Utilisé pour décrire une valeur constante à un décalage donné. Il prend un `ConstantValueNode` comme constante et un `number` comme décalage :
+    
+
+    ```ts
+    const discriminatorNode = constantDiscriminatorNode(constantValueNodeFromString('utf8', 'Hello'), 64);
+    ```
+
+- `FieldDiscriminatorNode` : Utilisé pour décrire une valeur par défaut d'un champ de structure à un décalage donné. Il prend un `CamelCaseString` comme nom de champ et un `number` comme décalage :
+    
+
+    ```ts
+    const discriminatorNode = fieldDiscriminatorNode('accountState', 64);
+    ```
+
+    > Le champ doit être disponible dans les données du compte ou les arguments d'instruction et il doit avoir une valeur par défaut. Par exemple :
+
+    ```ts
+    accountNode({
+        data: structTypeNode([
+            structFieldTypeNode({
+                name: 'discriminator',
+                type: numberTypeNode('u32'),
+                defaultValue: numberValueNode(42),
+                defaultValueStrategy: 'omitted',
+            }),
+            // ...
+        ]),
+        discriminators: [fieldDiscriminatorNode('discriminator')],
+        // ...
+    });
+    ```
+
+- `SizeDiscriminatorNode` : Utilisé pour distinguer les comptes ou les instructions en fonction de la taille de leurs données. Il prend un `number` comme paramètre de taille :
+    
+
+    ```ts
+    const discriminatorNode = sizeDiscriminatorNode(165);
+    ```
+
+> `DiscriminatorNode` est un alias de type et ne peut pas être utilisé directement comme nœud. Lorsqu'un `DiscriminatorNode` est requis, utilisez plutôt l'un des types de nœuds discriminateurs spécifiques.
+
+### Nœud Pda Seed
+
+Pour définir les seeds des adresses dérivées de programme (PDAs), nous utilisons `PdaSeedNode`. Ces nœuds spécifient comment les adresses PDA doivent être dérivées, soit à partir de valeurs constantes, soit à partir d'entrées variables. Le `PdaSeedNode` fournit différentes méthodes pour définir les seeds PDA :
+
+- `ConstantPdaSeedNode` : Utilisé pour décrire un seed constant pour une adresse dérivée de programme. Il prend un `TypeNode` et un `ValueNode` en combinaison :
+
+    ```ts
+    const pdaSeedNode = constantPdaSeedNode(stringTypeNode('utf8'), stringValueNode('auth'));
+    ```
+
+    > Un assistant `constantPdaSeedNodeFromString` peut également être utilisé pour définir plus facilement des constantes basées sur des chaînes. Par exemple, l'exemple suivant est équivalent à celui ci-dessus :
+
+    ```ts
+    const pdaSeedNode = constantPdaSeedNodeFromString('utf8', 'auth');
+    ```
+
+- `VariablePdaSeedNode` : Utilisé pour décrire un seed variable pour une adresse dérivée de programme. Il prend un nom et un `TypeNode` :
+
+    ```ts
+    const pdaSeedNode = variablePdaSeedNode('authority', publicKeyTypeNode())
+    ```
+
+Voici comment ils sont utilisés dans un `pdaNode` :
+
+```ts
+const counterPda = pdaNode({
+    name: 'counter',
+    seeds: [
+        constantPdaSeedNodeFromString('utf8', 'counter'),
+        variablePdaSeedNode('authority', publicKeyTypeNode()),
+    ],
+});
+```
+
+> `PdaSeedNode` est un alias de type et ne peut pas être utilisé directement comme nœud. Lorsqu'un `PdaSeedNode` est requis, utilisez plutôt l'un des types de nœuds de seed pda spécifiques.
+
+<ArticleSection name="Écrire un IDL Codama" id="writing-a-codama-idl" level="h2" />
+
+Maintenant que nous avons examiné les nœuds les plus importants disponibles dans un programme, découvrons comment créer un IDL Codama à partir de zéro.
+
+### Nœud racine
+
+Pour créer la base de votre IDL Codama, nous utilisons `RootNode`. Ce nœud sert de conteneur de premier niveau qui contient votre `ProgramNode` principal ainsi que tout programme supplémentaire pouvant être référencé par le programme principal.
+
+```ts
+const node = rootNode(programNode({ ... }));
+```
+
+### Nœud de programme
+
+Pour définir un programme complet sur la chaîne, nous utilisons `ProgramNode`. Ce nœud représente le programme complet déployé sur la chaîne et définit tous les éléments minimaux viables tels que les comptes, les instructions, les PDA et les erreurs.
+
+En plus de ces éléments fondamentaux, ce nœud accepte le nom du programme, la version, la clé publique de déploiement et la documentation en markdown :
+
+```ts
+const node = programNode({
+    name: 'counter',
+    publicKey: '22222222222222222222222222222222222222222222',
+    version: '0.0.1',
+    docs: [],
+    accounts: [],
+    instructions: [],
+    definedTypes: [],
+    pdas: [],
+    errors: [],
+});
+```
+
+Dans les sections suivantes, nous examinerons tous ces éléments en détail.
+
+### Nœud de compte
+
+Pour définir les comptes sur la chaîne, nous utilisons `AccountNode`. Ce nœud est caractérisé par son nom, sa structure de données et des attributs optionnels tels que les définitions PDA et les discriminateurs de compte.
+
+Il représente les comptes qui correspondent généralement au fichier `state.rs` de votre programme.
+
+Le champ docs peut être utilisé pour ajouter une documentation expliquant ce que ce compte accomplit au sein du programme :
+
+```ts
+const node = accountNode({
+    name: 'token',
+    data: structTypeNode([
+        structFieldTypeNode({ name: 'mint', type: publicKeyTypeNode() }),
+        structFieldTypeNode({ name: 'owner', type: publicKeyTypeNode() }),
+        structFieldTypeNode({ name: 'amount', type: numberTypeNode('u64') }),
+    ]),
+    discriminators: [sizeDiscriminatorNode(72)],
+    size: 72,
+    pda: pdaLinkNode("associatedTokenAccount"),
+});
+```
+
+> Le `AccountNode` ne stocke pas un tableau de `PdaNode` mais un seul lien optionnel vers un `PdaNode` via un `PdaLinkNode`, donc si un `PdaNode` est défini à l'intérieur d'un `ProgramNode`, les deux peuvent être liés ici.
+
+### Nœud d'instruction
+
+Pour définir les instructions du programme, nous utilisons `InstructionNode`. Ce nœud représente une instruction dans un programme et vous permet de spécifier le discriminateur, les comptes requis et les données d'instruction sans complications.
+
+De plus, vous pouvez inclure des comptes optionnels. Selon la conception de votre programme, ces comptes optionnels peuvent être résolus de deux façons : en étant omis ou en passant l'ID du programme comme compte. Vous pouvez sélectionner la méthode de résolution en utilisant le champ `optionalAccountStrategy: "omitted" | "programId"`.
+
+> Lorsque le `optionalAccountStrategy` n'est pas fourni, la stratégie `programId` est supposée par défaut.
+
+Le champ docs peut être utilisé pour ajouter de la documentation expliquant ce que cette instruction accomplit dans le programme.
+
+```ts
+const node = instructionNode({
+    name: 'increment',
+    discriminators: [fieldDiscriminatorNode('discriminator')],
+    arguments: [
+        instructionArgumentNode({
+            name: 'discriminator',
+            type: numberTypeNode('u8'),
+            defaultValue: numberValueNode(1),
+            defaultValueStrategy: 'omitted',
+        }),
+    ],
+    accounts: [
+        instructionAccountNode({ name: 'counter', isWritable: true, isSigner: true }),
+        instructionAccountNode({ name: 'authority', isWritable: false, isSigner: false }),
+    ],
+    remainingAccounts: [instructionRemainingAccountsNode(argumentValueNode('authorities'), { isSigner: true })],
+    optionalAccountStrategy: 'omitted',
+});
+```
+
+Dans `instructionAccountNode`, vous pouvez spécifier l'optionalité du compte en utilisant le champ `isOptional: boolean`, ou fournir un `defaultValue` qui se résout en un `ValueNode`.
+
+> La fonctionnalité defaultValue fonctionne également pour `instructionArgumentNode`.
+
+Le defaultValueStrategy dans instructionArgumentNode détermine comment les valeurs par défaut sont gérées : "optional" signifie que la valeur par défaut de l'argument peut être remplacée par un argument fourni ou "omitted" qui signifie qu'aucun argument ne doit être fourni et que la valeur par défaut doit toujours être utilisée
+
+La stratégie est définie par défaut sur "optional" si non spécifiée.
+
+### Nœud d'erreur
+
+Pour définir les erreurs qui peuvent être renvoyées par un programme, nous utilisons `ErrorNode`. Ce nœud est caractérisé par un nom, un code numérique qui sera renvoyé et un message lisible associé pour le débogage.
+
+```ts
+const node = errorNode({
+    name: 'invalidAmountArgument',
+    code: 1,
+    message: 'The amount argument is invalid.',
+});
+```
+
+### Nœud PDA
+
+Pour fournir des définitions pour des adresses dérivées de programme spécifiques, nous utilisons `PdaNode`. Ce nœud est caractérisé par un nom et une liste de seeds qui peuvent être constantes ou variables, permettant une génération flexible de PDA.
+
+```ts
+const node = pdaNode({
+    name: 'counter',
+    seeds: [variablePdaSeedNode('authority', publicKeyTypeNode())],
+    docs: ['The counter PDA derived from its authority.'],
+});
+```
+
+> Si l'ID du programme diffère de l'ancêtre ProgramNode le plus proche, vous devez le spécifier en utilisant le champ programId.
+
+Cela peut être utilisé pour lier des PDA comme `defaultValue` dans le `instructionAccountNode` en utilisant le `pdaValueNode`.

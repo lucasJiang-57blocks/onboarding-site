@@ -1,0 +1,185 @@
+import { ArticleSection } from "../../../../components/ArticleSection/ArticleSection";
+
+# Demande de transaction
+
+Les demandes de transaction libèrent toute la puissance de Solana Pay en permettant des transactions dynamiques, composées par le serveur, qui peuvent gérer tout type d'opération Solana.
+
+Contrairement aux demandes de transfert qui contiennent toutes les informations de paiement dans l'URL, les demandes de transaction utilisent des points de terminaison interactifs pour créer des transactions personnalisées basées sur des données en temps réel et une logique métier.
+
+Cette approche transforme Solana Pay d'un simple système de paiement en une plateforme commerciale complète capable de gérer des scénarios commerciaux complexes, des prix dynamiques et des flux de transactions sophistiqués.
+
+<ArticleSection name="Comment fonctionnent les demandes de transaction" id="how-it-works" level="h2" />
+
+Les demandes de transaction suivent un format d'URL simple qui pointe vers le point de terminaison de votre serveur :
+
+```
+solana:<link>
+```
+
+La valeur `link` doit être une URL vers votre point de terminaison API qui gère à la fois les requêtes `GET` et `POST`. Lorsqu'un utilisateur scanne un code QR de demande de transaction, son portefeuille initie un processus en quatre étapes :
+1. **Requête GET initiale** : Récupère les informations d'affichage comme le nom de votre entreprise et le logo
+2. **Confirmation de l'utilisateur** : Le portefeuille montre les informations de l'entreprise à l'utilisateur
+3. **Requête POST** : Envoie la clé publique de l'utilisateur à votre point de terminaison
+4. **Réponse de transaction** : Votre serveur construit une transaction personnalisée et la renvoie sous forme de chaîne encodée en base64
+
+Le portefeuille présente ensuite cette transaction à l'utilisateur pour approbation et signature.
+
+> Vous pouvez inclure des paramètres dans l'URL pour y accéder depuis votre point de terminaison comme ceci :
+
+```
+solana:https://myapi.com/pay?amount=100&product=premium&reference=abc123
+```
+
+<ArticleSection name="Construction du point de terminaison API" id="api-endpoint" level="h2" />
+
+La création d'un point de terminaison de demande de transaction nécessite de gérer à la fois les requêtes GET et POST à la même URL. Voici la structure utilisant Next.js App Router :
+
+```ts
+import { NextRequest, NextResponse } from 'next/server';
+
+// CORS headers for wallet compatibility
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+  'Access-Control-Allow-Headers': 'Content-Type',
+};
+
+export async function OPTIONS() {
+  return new NextResponse(null, { status: 200, headers: corsHeaders });
+}
+
+export async function GET() {
+  // Implementation details below...
+}
+
+export async function POST(request: NextRequest) {
+  // Implementation details below...
+}
+```
+
+> Étant donné que les portefeuilles effectuent des requêtes cross-origin vers votre endpoint, les en-têtes CORS sont obligatoires. Sans eux, les requêtes du portefeuille échoueront.
+
+### Gestionnaire de requêtes GET
+
+La requête GET fournit des informations d'affichage qui aident les utilisateurs à comprendre avec quoi ils interagissent :
+
+```ts
+export async function GET() {
+  return NextResponse.json({
+    label: "Coffee Shop Demo",
+    icon: "https://solana.com/src/img/branding/solanaLogoMark.svg",
+  }, { headers: corsHeaders });
+}
+```
+
+**Format de réponse :**
+
+```json
+{
+  "label": "Coffee Shop Demo",
+  "icon": "https://solana.com/src/img/branding/solanaLogoMark.svg"
+}
+```
+
+Ces informations aident l'utilisateur à comprendre avec quoi il s'apprête à interagir avant de procéder à la composition réelle de la transaction.
+
+### Gestionnaire de requêtes POST
+
+La requête POST est là où les demandes de transaction brillent vraiment. Votre endpoint reçoit la clé publique de l'utilisateur et construit une transaction entièrement personnalisée :
+
+```ts
+export async function POST(request: NextRequest) {
+  // Parse user's public key from request body
+  const body = await request.json();
+  const { account } = body;
+
+  // Connect to Solana network
+  const connection = new Connection(clusterApiUrl("devnet"));
+  const { blockhash, lastValidBlockHeight } = await connection.getLatestBlockhash();
+
+  // Create transaction with user as fee payer
+  const transaction = new Transaction({
+    feePayer: new PublicKey(account),
+    blockhash: blockhash,
+    lastValidBlockHeight: lastValidBlockHeight,
+  });
+
+  // ========================================
+  // ADD YOUR CUSTOM INSTRUCTIONS HERE
+  // ========================================
+  
+  // This is where you build your transaction logic.
+  // You can add any combination of instructions:
+  
+  // Example 1: Simple SOL transfer
+  // const transferInstruction = SystemProgram.transfer({
+  //   fromPubkey: new PublicKey(account),
+  //   toPubkey: new PublicKey("YOUR_MERCHANT_WALLET"),
+  //   lamports: LAMPORTS_PER_SOL * 0.01, // 0.01 SOL
+  // });
+  // transaction.add(transferInstruction);
+
+  // Serialize the transaction for the wallet
+  const serializedTransaction = transaction.serialize({
+    requireAllSignatures: false,
+    verifySignatures: false,
+  });
+
+  return NextResponse.json({
+    transaction: serializedTransaction.toString('base64'),
+    message: "Transaction created successfully", // Customize this message
+  }, { headers: corsHeaders });
+}
+```
+
+> Votre application ne soumet pas la transaction au réseau, vous n'aurez donc pas accès à la signature de transaction à des fins de suivi. Utilisez des paramètres de référence comme expliqué dans la [Leçon d'introduction](/en/courses/solana-pay/introduction#reference)
+
+<ArticleSection name="Capacités avancées" id="advanced-capabilities" level="h2" />
+
+### Transactions conditionnelles
+
+Les demandes de transaction permettent un contrôle d'accès sophistiqué en vérifiant les conditions avant de construire les transactions. Puisque vous contrôlez l'endpoint, vous pouvez vérifier la propriété d'un NFT, l'appartenance à une liste blanche ou tout autre critère :
+
+```ts
+// Check NFT ownership before building transaction
+const nfts = await metaplex.nfts().findAllByOwner({ owner: account }).run(); 
+
+const hasRequiredNFT = nfts.some(nft => 
+  nft.collection?.address.toString() === requiredCollection
+);
+
+if (!hasRequiredNFT) {
+  return response.status(403).json({ 
+    error: "Access denied: Required NFT not found" 
+  });
+}
+
+// Build transaction only for verified users
+```
+
+### Signature partielle pour une sécurité renforcée
+
+Pour les transactions nécessitant l'approbation d'une paire de clés administrateur ou une authentification multi-parties, Solana Pay prend en charge la signature partielle. Votre serveur peut ajouter sa signature avant d'envoyer à l'utilisateur :
+
+```ts
+const transaction = new Transaction({
+  feePayer: account,
+  blockhash,
+  lastValidBlockHeight,
+});
+
+// Add your instructions requiring admin signature
+transaction.add(customInstruction);
+
+// Partially sign with your admin keypair
+transaction.partialSign(adminKeypair);
+
+// Send to user for final signature
+const serializedTransaction = transaction.serialize({
+  requireAllSignatures: false,
+});
+```
+
+<ArticleSection name="Exemple" id="example" level="h2" />
+
+Comme exemple complet, vous pouvez utiliser l'[Exemple de Minter NFT Solana](https://github.com/solana-developers/solana-pay-nft-minter/tree/main) de la Fondation Solana

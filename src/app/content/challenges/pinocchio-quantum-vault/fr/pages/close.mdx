@@ -1,0 +1,132 @@
+# Fermer le coffre-fort
+
+L'instruction `close` effectue un retrait complet des coffres-forts résistants aux attaques quantiques, en transférant tous les lamports vers un seul compte destinataire.
+
+Contrairement à l'instruction `split`, cela fournit un mécanisme de retrait complet plus simple lorsque la distribution des fonds n'est pas nécessaire.
+
+<ArticleSection name="Comptes requis" id="required-accounts" level="h2" />
+
+L'instruction nécessite trois comptes :
+
+- `vault` : Coffre-fort source contenant les lamports stockés (doit être modifiable)
+- `refund` : Compte destinataire pour le solde des lamports du coffre-fort (doit être modifiable)
+
+Voici à quoi cela ressemble dans le code :
+
+```rust
+pub struct CloseVaultAccounts<'a> {
+    pub vault: &'a AccountInfo,
+    pub refund: &'a AccountInfo,
+}
+
+impl<'a> TryFrom<&'a [AccountInfo]> for CloseVaultAccounts<'a> {
+    type Error = ProgramError;
+
+    fn try_from(accounts: &'a [AccountInfo]) -> Result<Self, Self::Error> {
+        let [vault, refund] = accounts else {
+            return Err(ProgramError::NotEnoughAccountKeys);
+        };
+
+        Ok(Self { vault, refund })
+    }
+}
+
+```
+
+> La validation des comptes est gérée par le runtime. Si les comptes ne répondent pas aux exigences (mutabilité), l'instruction échouera automatiquement.
+
+<ArticleSection name="Données d'instruction" id="instruction-data" level="h2" />
+
+Deux éléments de données sont requis :
+- `signature` : Signature Winternitz prouvant la propriété de la paire de clés du coffre-fort
+- `bump` : Bump de dérivation PDA pour l'optimisation (1 octet)
+
+Voici à quoi cela ressemble dans le code :
+
+```rust
+pub struct CloseVaultInstructionData {
+    pub signature: WinternitzSignature,
+    pub bump: [u8; 1],
+}
+
+impl<'a> TryFrom<&'a [u8]> for CloseVaultInstructionData {
+    type Error = ProgramError;
+
+    fn try_from(data: &'a [u8]) -> Result<Self, Self::Error> {
+        if data.len() != core::mem::size_of::<CloseVaultInstructionData>() {
+            return Err(ProgramError::InvalidInstructionData);
+        }
+
+        let mut signature_array = MaybeUninit::<[u8; 896]>::uninit();
+        unsafe {
+            core::ptr::copy_nonoverlapping(data[0..896].as_ptr(), signature_array.as_mut_ptr() as *mut u8, 896);
+        }
+        
+        Ok(Self { 
+            signature: WinternitzSignature::from(unsafe { signature_array.assume_init() }),
+            bump: data[896..897].try_into().map_err(|_| ProgramError::InvalidInstructionData)?,
+        })
+    }
+}
+```
+
+<ArticleSection name="Logique d'instruction" id="instruction-logic" level="h2" />
+
+Le processus de vérification suit ces étapes :
+
+1. Assemblage du message : Un message de 32 octets est construit contenant la clé publique du compte `refund`
+
+2. Vérification de la signature : La signature Winternitz est utilisée pour récupérer le hash de la clé publique originale, qui est ensuite comparé aux seeds de dérivation PDA du coffre-fort.
+
+3. Validation PDA : Une vérification rapide d'équivalence assure que le hash récupéré correspond au PDA du coffre-fort, prouvant que le signataire possède le coffre-fort.
+
+4. Distribution des fonds si la validation réussit : la totalité du solde est transférée au compte `refund` et le compte `vault` est fermé.
+
+> Comme le programme possède le compte `vault`, vous pouvez transférer des lamports directement sans avoir à appeler une Invocation Inter-Programme (CPI).
+
+Voici à quoi cela ressemble dans le code :
+
+```rust
+pub struct CloseVault<'a> {
+    pub accounts: CloseVaultAccounts<'a>,
+    pub instruction_data: CloseVaultInstructionData,
+}
+
+impl<'a> TryFrom<(&'a [u8], &'a [AccountInfo])> for CloseVault<'a> {
+    type Error = ProgramError;
+
+    fn try_from((data, accounts): (&'a [u8], &'a [AccountInfo])) -> Result<Self, Self::Error> {
+        let instruction_data = CloseVaultInstructionData::try_from(data)?;
+        let accounts = CloseVaultAccounts::try_from(accounts)?;
+
+        Ok(Self { accounts, instruction_data })
+    }
+}
+
+impl<'a> CloseVault<'a> {
+    pub const DISCRIMINATOR: &'a u8 = &2;
+ 
+    pub fn process(&self) -> ProgramResult {
+        // Recover our pubkey hash from the signature
+        let hash = self.instruction_data.signature.recover_pubkey(self.accounts.refund.key()).merklize();
+
+        // Fast PDA equivalence check
+        if solana_nostd_sha256::hashv(&[
+            hash.as_ref(),
+            self.instruction_data.bump.as_ref(),
+            crate::ID.as_ref(),
+            b"ProgramDerivedAddress",
+        ])
+        .ne(self.accounts.vault.key())
+        {
+            return Err(ProgramError::MissingRequiredSignature);
+        }
+
+        // Close Vault and refund balance to Refund account
+        *self.accounts.refund.try_borrow_mut_lamports()? += self.accounts.vault.lamports();
+        self.accounts.vault.close()
+    }
+}
+```
+
+> La reconstruction du message empêche les attaques par rejeu de signature où des acteurs malveillants substituent différents comptes destinataires tout en exploitant des signatures valides capturées depuis le mempool.

@@ -1,0 +1,176 @@
+import { ArticleSection } from "../../../../components/ArticleSection/ArticleSection";
+
+# Déploiement du programme
+
+Une fois votre programme terminé, déployez-le sur devnet ou mainnet pour permettre l'interaction des utilisateurs.
+
+<ArticleSection name="Program Deployment" id="program-deployment" level="h2" />
+
+Compilez votre programme pour générer les fichiers de déploiement nécessaires :
+
+```
+anchor build
+```
+
+Cela crée un dossier `target/deploy` contenant :
+- `<project-name>.so` : le bytecode de votre programme
+- `<project-name>-keypair.json` : une paire de clés générée pour le déploiement
+
+> Vous pouvez remplacer cette paire de clés par une adresse personnalisée en substituant la paire de clés dans le fichier `<project-name>-keypair.json`.
+
+Récupérez l'adresse du programme :
+
+```
+solana address -k target/deploy/<project-name>-keypair.json
+```
+
+Mettez à jour la fonction `declare_id!()` dans `lib.rs` avec cette adresse, puis configurez votre `Anchor.toml` avec le bon cluster cible et l'ID du programme :
+
+```
+[provider]
+cluster = "devnet"
+
+[programs.devnet]
+<project-name> = "<PROGRAM_ID>"
+```
+
+Déployez votre programme :
+
+```
+anchor deploy
+```
+
+Cela déploie en utilisant l'adresse spécifiée, le cluster et le portefeuille de `Anchor.toml` comme payeur des frais.
+
+### Échecs de déploiement
+
+Les déploiements échoués créent des comptes tampons intermédiaires qui conservent des lamports. Vous verrez des instructions de récupération comme :
+
+```
+==================================================================================
+Recover the intermediate account's ephemeral keypair file with
+`solana-keygen recover` and the following 12-word seed phrase:
+==================================================================================
+valley flat great hockey share token excess clever benefit traffic avocado athlete
+==================================================================================
+To resume a deploy, pass the recovered keypair as
+the [BUFFER_SIGNER] to `solana program deploy` or `solana program write-buffer'.
+Or to recover the account's lamports, pass it as the
+[BUFFER_ACCOUNT_ADDRESS] argument to `solana program drain`.
+==================================================================================
+```
+
+Pour récupérer votre solde :
+
+- **Reprendre le déploiement** en récupérant la paire de clés :
+
+    ```
+    solana-keygen recover -o <KEYPAIR_PATH>
+    ```
+
+    Entrez la phrase de récupération de 12 mots lorsque demandé, puis déployez avec le tampon :
+
+    ```
+    solana program deploy ./target/deploy/<project-name>.so --program-id ./target/deploy/<project-name>-keypair.json --buffer ./target/deploy/<buffer>-keypair.json
+    ```
+
+- **Fermer** le tampon pour récupérer les lamports :
+
+    ```
+    solana program close <ADDRESS>
+    ```
+
+### Déploiement via Solana CLI
+
+Vous pouvez déployer vos programmes directement en utilisant Solana CLI au lieu d'Anchor :
+
+```
+solana program deploy ./target/deploy/<project-name>.so --program-id ./target/deploy/<project-name>-keypair.json
+```
+
+Pendant les périodes de congestion du réseau, utilisez ces options pour améliorer le succès du déploiement :
+- `--with-compute-unit-price` : Définit le prix de l'unité de calcul en micro-lamports
+- `--use-rpc` : Envoie les transactions au RPC au lieu des TPU du validateur
+- `--max-sign-attempts` : Nombre maximal de tentatives après l'expiration du blockhash
+
+<ArticleSection name="Mise à niveau du programme" id="program-upgrade" level="h2" />
+
+Par défaut, `anchor deploy` crée un nouvel ID de programme. Pour mettre à niveau un programme existant tout en préservant son adresse et les comptes associés :
+
+```
+anchor upgrade target/deploy/<project-name>.so --program-id <PROGRAM_ID>
+```
+
+Si le nouvel exécutable est plus volumineux que la version déployée, étendez d'abord le compte du programme :
+
+```
+solana program extend ./target/deploy/<project-name>.so <ADDITIONAL_BYTES>
+```
+
+### Mise à niveau via Solana CLI
+
+Le processus reste le même : étendre si nécessaire, puis déployer :
+
+```
+solana program deploy ./target/deploy/<project-name>.so --program-id ./target/deploy/<project-name>-keypair.json
+```
+
+### Rendre les programmes immuables
+
+Vous pouvez supprimer l'autorité de mise à niveau pour rendre votre programme immuable :
+
+```
+solana program set-upgrade-authority <PROGRAM_ID> --final
+```
+
+> Cette action est irréversible. Une fois défini, le programme ne peut plus être mis à jour.
+
+### Migration des programmes
+
+La migration transfère un programme d'une adresse à une autre. Le CLI ferme l'ancien programme et redéploie vers le nouvel emplacement :
+
+```
+solana program migrate ./target/deploy/<project-name>.json
+```
+
+> La migration rompt tous les PDA existants car ils dérivent de l'ancien ID de programme. Les utilisateurs doivent mettre à jour leurs applications pour utiliser la nouvelle adresse et changer l'autorité sur tout compte de token dont l'autorité est un PDA.
+
+<ArticleSection name="Téléchargement d'un IDL" id="uploading-an-idl" level="h2" />
+
+Un fichier Interface Description Language (IDL) fournit une description JSON standardisée des instructions et des comptes de votre programme, facilitant l'intégration client.
+
+Téléchargez l'IDL sur la chaîne pour aider les développeurs à intégrer votre programme :
+
+```
+anchor idl init --filepath target/idl/<program_name>.json <PROGRAM_ID>
+```
+
+### Mise à jour de l'IDL
+
+Après avoir redéployé votre programme, mettez à jour l'IDL sur la chaîne :
+
+```
+anchor idl upgrade --filepath target/idl/<program_name>.json <PROGRAM_ID>
+```
+
+<ArticleSection name="Verified Builds" id="verified-builds" level="h2" />
+
+Les builds vérifiés garantissent que le programme exécutable déployé sur Solana correspond au code source dans votre dépôt. Cette vérification permet aux développeurs et aux utilisateurs de confirmer que le programme sur la chaîne correspond exactement à la base de code publique.
+
+Le processus de vérification compare le hash du programme sur la chaîne avec le programme compilé localement à partir du code source, détectant toute différence entre les versions.
+
+La compilation de programmes avec le CLI Solana peut intégrer du code spécifique à la machine dans les binaires. La compilation du même programme sur différentes machines peut produire des exécutables différents. Pour résoudre ce problème, effectuez la compilation dans un conteneur Docker avec des dépendances fixées pour obtenir des résultats reproductibles.
+
+Anchor fournit des commandes CLI qui gèrent la compilation et la configuration Docker :
+
+```
+anchor build --verifiable
+```
+
+Vérifiez une build par rapport à un programme déployé sur le réseau principal :
+
+```
+anchor verify -p <lib-name> <program-id>
+```
+
+> Le `<lib-name>` correspond au nom défini dans le fichier `Cargo.toml` de votre programme.

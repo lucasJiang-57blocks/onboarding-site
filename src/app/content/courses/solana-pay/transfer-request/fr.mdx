@@ -1,0 +1,63 @@
+import { ArticleSection } from "../../../../components/ArticleSection/ArticleSection";
+
+# Demandes de transfert
+
+Les demandes de transfert sont la méthode de paiement la plus simple de Solana Pay, conçue pour les transferts simples de SOL ou de jetons SPL sans nécessiter d'interaction avec un serveur. Lorsqu'un utilisateur scanne un code QR ou clique sur un lien de demande de transfert, son portefeuille dispose de tout ce dont il a besoin pour composer et exécuter la transaction immédiatement.
+
+La beauté des demandes de transfert réside dans leur simplicité : toutes les informations de paiement sont directement encodées dans l'URL, les rendant complètement autonomes et instantanément exécutables.
+
+<ArticleSection name="Structure d'URL et paramètres" id="url-structure" level="h2" />
+
+Les URL de demande de transfert suivent un format standardisé que n'importe quel portefeuille Solana peut interpréter :
+
+```
+solana:<recipient>?<optional-query-params>
+```
+
+**Paramètre requis :**
+- `recipient` : Une clé publique encodée en base58 représentant le portefeuille de destination. C'est le seul champ obligatoire, garantissant que les paiements vont directement du client au commerçant sans intermédiaires.
+
+**Paramètres optionnels :**
+- **`amount`** : Spécifie le montant exact du transfert en valeur décimale. Sans cela, les portefeuilles invitent les utilisateurs à saisir un montant manuellement — parfait pour les dons ou les scénarios de paiement flexibles.
+- **`spl-token`** : L'adresse du jeton pour les transferts de jetons SPL. Transforme un transfert SOL en transfert de n'importe quel jeton, des paiements USDC aux jetons de fidélité personnalisés.
+- **`reference`** : Un identifiant unique pour suivre les paiements sur la blockchain. Comme les commerçants ne contrôlent pas les signatures de transaction, les références servent d'identifiants consultables pour le rapprochement des paiements et le support client.
+- **`label` et `message`** : Chaînes de caractères destinées à l'utilisateur qui expliquent le contexte du paiement. L'étiquette identifie généralement le commerçant, tandis que le message décrit l'achat spécifique.
+- **`memo`** : Crée un enregistrement sur la blockchain en utilisant le programme memo de Solana. Précieux pour la conformité, la comptabilité ou pour fournir un contexte permanent à la transaction.
+
+### Exemple 
+
+Voici une demande de transfert de 1 SOL qui démontre l'utilisation pratique des paramètres :
+
+```
+solana:22222222222222222222222222222222222222222222?amount=1&label=Blueshift%20Subscription&message=1%20Month&memo=Order12345&reference=abc123def456
+```
+
+Pour les entreprises qui acceptent les stablecoins, voici une demande de transfert en USDC :
+
+```
+solana:22222222222222222222222222222222222222222222?amount=200&spl-token=EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v&label=Blueshift%20Subscription&message=1%20Month&memo=Order12345&reference=abc123def456
+```
+
+<ArticleSection name="Quand utiliser les demandes de transfert" id="when-to-use" level="h2" />
+
+Les demandes de transfert excellent dans les scénarios où les détails de paiement sont prédéterminés et ne changent pas :
+
+**Cas d'utilisation parfaits :**
+- **Paiements e-commerce** avec prix fixes
+- **Campagnes de dons** où les utilisateurs choisissent les montants
+- **Paiements d'abonnements** avec des montants connus
+- **Systèmes de point de vente** pour les transactions en personne
+- **Paiements de factures** avec des montants spécifiques
+
+**Avantages clés :**
+- **Nature non interactive :** Une fois générées, ces URL fonctionnent indépendamment de vos serveurs. Parfait pour les situations où la connectivité réseau pourrait être peu fiable ou lorsque vous souhaitez minimiser les dépendances d'infrastructure.
+- **Exécution garantie :** Les paramètres de paiement sont verrouillés dans l'URL, garantissant que les clients paient exactement ce que vous attendez sans changements dynamiques de prix.
+- **Capacité hors ligne :** Les URL peuvent être générées localement sur des appareils comme les terminaux de point de vente, permettant des paiements même si les systèmes backend sont temporairement indisponibles.
+- **Charge serveur réduite :** Aucun appel API nécessaire pendant le traitement des paiements, les rendant hautement évolutifs pour les scénarios à volume élevé.
+- **Compatibilité universelle :** N'importe quel portefeuille Solana peut traiter ces demandes sans nécessiter d'intégrations spécifiques au portefeuille.
+
+Envisagez les demandes de transfert lorsque vous avez besoin de montants de paiement garantis, souhaitez réduire les dépendances serveur, ou nécessitez une méthode de paiement qui fonctionne de manière fiable dans toutes les conditions de réseau.
+
+<ArticleSection name="Exemple" id="example" level="h2" />
+
+Comme exemple complet, vous pouvez utiliser l'[Exemple de marchand avec flux de paiement](https://github.com/solana-foundation/solana-pay/blob/master/core/example/payment-flow-merchant/main.ts) de la Fondation Solana

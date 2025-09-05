@@ -1,0 +1,168 @@
+import { ArticleSection } from "../../../../components/ArticleSection/ArticleSection";
+
+# Fonctionnalités avancées
+
+Surfnet va au-delà de la simple réplication du mainnet sur localnet—il vous permet d'améliorer et de modifier les fonctionnalités principales de Solana en changeant les comptes, les variables système et l'état de la blockchain.
+
+Ces modifications s'effectuent via des appels RPC à Surfnet, permettant des changements à la fois par programmation (pour les environnements de test automatisés) et via des commandes de terminal (pour des opérations ponctuelles).
+
+Pour exécuter des appels RPC dans votre code, utilisez :
+
+```ts
+const surfnetCall = {
+    "jsonrpc": "2.0",
+    "id": 1,
+    "method": "<surfnet-method>",
+    "params": [<surfnet-method-params]
+}
+
+await fetch(connection.rpcEndpoint, {
+    method: 'POST',
+    headers: {
+        'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(surfnetCall)
+});
+```
+
+Pour exécuter des appels RPC dans votre terminal, utilisez :
+
+```bash
+curl -X POST \
+    -H "Content-Type: application/json" \
+    -d '{
+        "jsonrpc": "2.0",
+        "id": 1,
+        "method": "<surfnet-method>",
+        "params": [<surfnet-method-params]
+    }' \
+    http://localhost:8899
+```
+
+<ArticleSection name="Personnaliser les variables système" id="customize-system-variables" level="h2" />
+
+### Voyage dans le temps
+
+Sautez à n'importe quel point de l'historique de la blockchain en utilisant la méthode `surfnet_timeTravel`. C'est inestimable pour tester comment votre programme se comporte dans différents états du réseau ou pour reproduire des bugs survenus à des moments spécifiques.
+
+Spécifiez l'un des paramètres suivants : `absoluteEpoch`, `absoluteSlot`, ou `absoluteTimestamp` comme ceci :
+
+```ts
+{
+  "jsonrpc": "2.0",
+  "id": 1,
+  "method": "surfnet_timeTravel",
+  "params": [
+    {
+      "absoluteEpoch": 0
+    }
+  ]
+}
+```
+
+### Mettre en pause et reprendre la production de blocs
+
+Contrôlez la progression des blocs pour déboguer les transactions étape par étape ou tester une logique sensible au temps. Utilisez `surfnet_pauseClock` pour arrêter la production de blocs et `surfnet_resumeClock` pour continuer :
+
+```ts
+{
+  "jsonrpc": "2.0",
+  "id": 1,
+  "method": "surfnet_pauseClock", // or "surfnet_resumeClock"
+  "params": []
+}
+```
+
+<ArticleSection name="Modifier les données de compte" id="modify-account-data" level="h2" />
+
+### Définir les paramètres SOL
+
+Configurez les paramètres d'approvisionnement en SOL pour tester des scénarios économiques ou des cas limites.
+
+La méthode `surfnet_setSupply` accepte les paramètres `circulating`, `nonCirculating`, `nonCirculatingAccounts`, et `total` :
+
+```ts
+{
+  "jsonrpc": "2.0",
+  "id": 1,
+  "method": "surfnet_setSupply",
+  "params": [
+    {
+      "circulating": 1000000000,
+      "nonCirculating": 1000000000,
+      "nonCirculatingAccounts": [],
+      "total": 1000000000
+    }
+  ]
+}
+```
+
+### Transférer des comptes entre programmes
+
+Clonez des comptes de programme d'un programme à un autre en utilisant `surfnet_cloneProgramAccount`. Utile pour tester les mises à niveau de programmes ou migrer l'état entre différentes versions de programmes.
+
+Nécessite à la fois `destinationProgramId` et `sourceProgramId` :
+
+```ts
+{
+  "jsonrpc": "2.0",
+  "id": 1,
+  "method": "surfnet_cloneProgramAccount",
+  "params": [
+    {
+      "destinationProgramId": "string",
+      "sourceProgramId": "string"
+    }
+  ]
+}
+```
+
+### Mettre à jour les données du compte
+
+> La mise à jour d'un compte déjà existant avec les méthodes suivantes écrasera les états du compte
+
+Modifiez les propriétés d'un compte, y compris les lamports, les données, le propriétaire et le statut exécutable en utilisant `surfnet_setAccount`. 
+
+La méthode nécessite un `pubkey` et accepte des champs optionnels pour `data`, `executable`, `lamports`, `owner`, et `rentEpoch` :
+
+```ts
+{
+  "jsonrpc": "2.0",
+  "id": 1,
+  "method": "surfnet_setAccount",
+  "params": [
+    "1111111QLbz7JHiBTspS962RLKV8GndWFwiEaqKM",
+    {
+      "data": "0x123456",
+      "executable": false,
+      "lamports": 1000000000,
+      "owner": "11111111111111111111111111111111",
+      "rentEpoch": 0
+    }
+  ]
+}
+```
+
+De plus, pour les modifications de comptes de jetons, utilisez la méthode spécialisée `surfnet_setTokenAccount`, qui simplifie la modification des données pour les comptes de jetons.
+
+Nécessite les paramètres `owner` et `mint`, avec des champs optionnels pour `amount`, `closeAuthority`, `delegate`, `delegateAmount`, `state`, et `tokenProgram` :
+
+```ts
+{
+  "jsonrpc": "2.0",
+  "id": 1,
+  "method": "surfnet_setTokenAccount",
+  "params": [
+    "1111111ogCyDbaRMvkdsHB3qfdyFYaG1WtRUAfdh",
+    "11111112D1oxKts8YPdTJRG5FzxTNpMtWmq8hkVx3",
+    {
+      "amount": 1000000000,
+      "closeAuthority": "111111131h1vYVSYuKP6AhS86fbRdMw9XHiZAvAaj",
+      "delegate": "11111112cMQwSC9qirWGjZM6gLGwW69X22mqwLLGP",
+      "delegatedAmount": 1000000000,
+      "state": "initialized"
+    },
+    "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+  ]
+}
+```

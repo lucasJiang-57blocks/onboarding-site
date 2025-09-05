@@ -1,0 +1,110 @@
+import ArticleSection from "../../../../components/ArticleSection/ArticleSection";
+
+![Défi de glissement d'assemblage](/graphics/challenge-banners/assembly-slippage.png)
+
+# Glissement d'assemblage
+
+Dans cette unité, nous utiliserons l'assemblage sBPF pour créer une instruction de vérification de glissement de base. En incluant une telle instruction au dernier index de notre tableau d'instructions, nous pouvons créer une protection supplémentaire de dernier recours contre les bugs des contrats intelligents ou les contrats malveillants à inversion de bits.
+
+Il existe plusieurs propriétés d'une vérification de glissement qui en font un candidat idéal pour l'assemblage :
+
+- Cas d'utilisation unique et contraint
+- Pas besoin d'effectuer des vérifications de signataire/compte
+- Ne peut qu'améliorer la sécurité
+
+Si vous n'êtes pas familier avec la façon d'écrire un programme en assemblage, suivez le [cours d'introduction à l'assemblage](/en/courses/introduction-to-assembly)
+
+<ArticleSection name="Conception du programme" id="program-design" level="h2" />
+
+Notre programme implémente une opération simple mais cruciale : valider qu'un compte de jetons dispose d'un solde suffisant avant de procéder à une transaction. Ce modèle apparaît partout dans la DeFi — des échanges AMM aux protocoles de prêt.
+
+Le programme attend :
+- Un seul compte de jetons SPL dans le tableau des comptes
+- Un montant de 8 octets dans les données d'instruction
+- Renvoie un succès si le solde ≥ montant, une erreur dans le cas contraire
+
+<ArticleSection name="Décalages mémoire" id="memory-offsets" level="h2" />
+
+Les programmes sBPF reçoivent les données de compte sous forme de régions de mémoire contiguës. Ces constantes définissent les décalages d'octets. En supposant que notre programme ne prendra qu'un seul compte, et qu'il s'agira d'un compte de jetons SPL, il est possible de dériver statiquement ces décalages comme suit :
+
+```sbpf
+.equ TOKEN_ACCOUNT_BALANCE, 0x00a0
+.equ MINIMUM_BALANCE, 0x2918
+```
+
+- `TOKEN_ACCOUNT_BALANCE (0x00a0)` : pointe vers le champ de solde dans les données du compte de jetons SPL. Les comptes de jetons suivent une disposition standard où le solde (8 octets, little-endian) se trouve au décalage 160.
+
+- `MINIMUM_BALANCE (0x2918)` : localise où Solana place votre charge utile de données d'instruction. Ce décalage fait partie de la structure d'information de compte du runtime.
+
+> Vous pouvez générer des décalages en utilisant nos outils sur [sbpf.xyz](https://sbpf.xyz)
+
+Contrairement aux langages de haut niveau qui abstraient la disposition de la mémoire, l'assembleur exige que vous sachiez exactement où se trouve chaque élément de données.
+
+<ArticleSection name="Point d'entrée et validation initiale" id="entrypoint-and-validations" level="h2" />
+
+```sbpf
+.globl entrypoint
+entrypoint:
+    ldxdw r3, [r1+MINIMUM_BALANCE]      // Get amount from IX data
+    ldxdw r4, [r1+TOKEN_ACCOUNT_BALANCE] // Get balance from token account
+```
+
+Chaque programme sBPF commence par un symbole global `.entrypoint`. L'environnement d'exécution de Solana fournit les données de compte et d'instruction via le registre `r1`.
+
+L'instruction `ldxdw` charge (`ldx`) une valeur de 8 octets (double mot, `dx`) depuis la mémoire vers un registre. Voici ce qui se passe :
+- `ldxdw r3, [r1+MINIMUM_BALANCE]` : calcule l'adresse mémoire contenant notre montant requis. La valeur est chargée dans `r3`.
+- `ldxdw r4, [r1+TOKEN_ACCOUNT_BALANCE]` : pointe vers le champ de solde du compte de jetons. Cette valeur de 64 bits arrive dans `r4`.
+
+Les deux opérations sont sans copie : nous lisons directement les données du compte sans surcharge de désérialisation.
+
+<ArticleSection name="Logique conditionnelle et branchement" id="conditional-logic-and-branching" level="h2" />
+
+```sbpf
+jge r3, r4, end         // Skip to exit if balance is valid
+```
+
+L'instruction `jge` (saut si supérieur ou égal) compare `r3` (montant requis) avec `r4` (solde disponible). Si `r3 >= r4`, nous sautons à l'étiquette `end` ; comme un retour anticipé.
+
+Si la condition échoue, l'exécution continue vers le chemin de gestion d'erreur. Ce modèle de branchement conditionnel est la façon dont l'assembleur implémente la logique if/else.
+
+<ArticleSection name="Gestion des erreurs et journalisation" id="error-handling-and-logging" level="h2" />
+
+```sbpf
+lddw r1, e              // Load error message address
+lddw r2, 17             // Load length of error message  
+call sol_log_           // Log out error message
+lddw r0, 1              // Return error code 1
+```
+
+Lorsque la validation échoue, nous journalisons une erreur lisible avant de terminer :
+- `lddw` charge des valeurs immédiates, dans ce cas l'adresse de notre chaîne d'erreur, qui se trouve dans la section `.rodata`, et sa longueur (17 octets pour "Slippage exceeded").
+- `call sol_log_` invoque l'appel système de journalisation de Solana. L'environnement d'exécution lit le message depuis la mémoire et l'ajoute aux journaux de transaction.
+- Nous chargeons ensuite `1` dans `r0` pour signaler l'échec du programme. L'environnement d'exécution annulera la transaction et renverra ce code d'erreur.
+
+<ArticleSection name="Terminaison du programme" id="program-termination" level="h2" />
+
+```sbpf
+end:
+    exit
+```
+
+L'instruction `exit` termine l'exécution du programme et rend le contrôle au runtime Solana. La valeur dans `r0` devient le code de sortie du programme (0 pour succès, non-zéro pour les erreurs).
+
+Contrairement aux langages de haut niveau avec nettoyage automatique, les programmes en assembleur doivent explicitement se terminer. Arriver à la fin de votre code sans instruction de sortie est un comportement indéfini.
+
+## Données en lecture seule
+
+```sbpf
+.rodata
+    e: .ascii "Slippage exceeded"
+```
+
+La section `.rodata` (données en lecture seule) contient notre message d'erreur.
+
+<ArticleSection name="Conclusion" id="conclusion" level="h2" />
+  
+Ce petit programme accomplit ce qui pourrait prendre des dizaines de CUs en Rust avec seulement `4 CUs` dans un cas de réussite, `6 CUs` dans un cas d'échec, ou `106 CUs` dans un cas d'échec qui journalise un message d'erreur.
+
+La contrepartie est que nous devons comprendre les dispositions mémoire, les conventions d'appel et la gestion des erreurs au niveau le plus bas. Mais pour les opérations critiques en termes de performance, les avantages justifient souvent l'effort.
+
+> Ce code n'est pas "sûr" à lui seul. Nous ne vérifions rien concernant les comptes transmis. Mais il vise à être une instruction complémentaire, ce qui signifie qu'elle devrait être exécutée de bonne foi.

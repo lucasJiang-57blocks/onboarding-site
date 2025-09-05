@@ -1,0 +1,104 @@
+import { ArticleSection } from "../../../../components/ArticleSection/ArticleSection";
+
+# Outillage
+
+L'écriture et la compilation de programmes en assembleur sBPF nécessitaient traditionnellement la chaîne d'outils complète de Solana, qui peut être complexe à configurer et dépendante de la plateforme. C'est précisément pour cette raison que [Dean](https://x.com/deanmlittle), avec la contribution de [Claire](https://x.com/clairefxyz), a créé sBPF : une boîte à outils complète pour créer et compiler des programmes en assembleur sBPF.
+
+<ArticleSection name="Installation" id="installation" level="h2" />
+
+Nous commençons par installer le package en faisant :
+
+```
+cargo install --git https://github.com/blueshift-gg/sbpf.git
+```
+
+Après cela, nous pourrons utiliser toutes les commandes suivantes :
+- `init` : Créer une structure de projet.
+- `build` : Compiler en un exécutable de programme Solana.
+- `deploy` : Compiler et déployer le programme.
+- `test` : Tester le programme déployé.
+- `e2e` : Compiler, déployer et tester un programme.
+- `clean` : Nettoyer les artefacts de compilation et de déploiement.
+- `help` : Afficher ce message ou l'aide des sous-commandes données.
+
+```text
+Usage: sbpf <COMMAND>
+
+Commands:
+  init    Create a new project scaffold
+  build   Compile into a Solana program executable
+  deploy  Build and deploy the program
+  test    Test deployed program
+  e2e     Build, deploy and test a program
+  clean   Clean up build and deploy artifacts
+  help    Print this message or the help of the given subcommand(s)
+
+Options:
+  -h, --help     Print help
+  -V, --version  Print version
+```
+
+<ArticleSection name="Initialiser un nouveau projet" id="initialize-a-new-project" level="h2" />
+
+Pour créer un nouveau projet, utilisez la commande `sbpf init`. Par défaut, elle initialise un projet avec des tests Rust utilisant Mollusk. Vous pouvez également initialiser un projet avec des tests TypeScript en utilisant l'option `--ts-tests`.
+
+```text
+sbpf init --help
+Create a new project scaffold
+
+Usage: sbpf init [OPTIONS] [NAME]
+
+Arguments:
+  [NAME]  The name of the project to create
+
+Options:
+  -t, --ts-tests  Initialize with TypeScript tests instead of Mollusk Rust tests
+  -h, --help      Print help information
+  -V, --version   Print version information
+```
+
+Après avoir initialisé le projet, vous pouvez naviguer dans le répertoire du projet et utiliser d'autres commandes pour compiler, déployer et tester votre programme.
+
+<ArticleSection name="Compilation des programmes" id="building-programs" level="h2" />
+
+sBPF propose deux options de compilation selon votre configuration et vos besoins :
+
+### Compilation sBPF
+
+La commande de compilation utilise un assembleur autonome qui ne nécessite aucune dépendance supplémentaire. C'est parfait pour l'apprentissage et l'expérimentation car cela "fonctionne tout simplement" sur n'importe quelle plateforme.
+
+```
+sbpf build
+```
+
+{/*
+
+TODO: Update sbpf to enable llvm build as an optional configuration then reenable this
+
+### Build complet
+
+La commande de build standard offre une intégration avec l'ensemble de la chaîne d'outils Solana et les fonctionnalités de gestion de projet.
+
+> Cela nécessite l'installation des [Outils en ligne de commande Solana](https://docs.anza.xyz/cli/install/).
+
+```
+sbpf build
+```
+
+ */}
+
+### Utilisation avancée
+
+Vous pouvez remplacer le linker par défaut avec un fichier linker personnalisé en l'incluant dans le répertoire src avec le même nom que votre programme. Par exemple :
+
+```text
+src/example/example.s
+src/example/example.ld
+```
+
+<ArticleSection name="Environnement de développement" id="development-environment" level="h2" />
+
+Pour une meilleure expérience de développement, envisagez d'installer l'[extension VS Code pour l'assemblage sBPF](https://github.com/deanmlittle/vscode-sbpf-asm) qui offre :
+- Coloration syntaxique pour l'assemblage sBPF
+- Complétion de code pour les instructions et les registres
+- Détection d'erreurs et avertissements

@@ -1,0 +1,60 @@
+import { ArticleSection } from "../../../../components/ArticleSection/ArticleSection";
+
+# Surfpool 101
+
+![Tester avec Surfpool](/graphics/course-banners/testing-with-surfpool.png)
+
+Tester des programmes Solana qui dépendent d'invocations inter-programmes (CPI) nécessite traditionnellement que les développeurs extraient des comptes et des programmes du réseau principal, puis les téléchargent sur un validateur local.
+
+Ce processus fonctionne pour quelques comptes, mais devient complètement irréalisable lors des tests de CPI dans des programmes complexes comme Jupiter, qui peuvent dépendre de plus de 40 comptes et plus de 8 programmes.
+
+Surfpool résout ce problème en permettant aux développeurs de simuler des programmes localement en utilisant des comptes du réseau principal récupérés à la demande, avec des fonctionnalités supplémentaires :
+- **Personnaliser les variables système** : Voyager dans le temps (testez votre programme à n'importe quel slot ou horodatage historique), mettre en pause l'horloge ou arrêter la production de blocs
+- **Modifier les données de compte** : Définir l'approvisionnement en SOL (total, en circulation et hors circulation), transférer des données de compte entre programmes ou mettre à jour les données de base du compte et les informations du compte de jetons
+- **Analyser les données de la chaîne** : Profiler les transactions pour les unités de calcul, les changements de compte et les détails d'exécution, puis récupérer des profils détaillés par signature, UUID ou tag
+
+<ArticleSection name="Qu'est-ce que Surfpool" id="what-is-surfpool" level="h2" />
+
+[Surfpool](https://docs.surfpool.run/) est la suite complète de SDK et d'outils, tandis que **Surfnet** est le réseau Solana local qu'il crée. Considérez Surfpool comme votre environnement de développement et Surfnet comme le réseau blockchain qui s'exécute à l'intérieur.
+
+Surfnet sert de remplacement direct pour solana-test-validator, conçu spécifiquement pour offrir la meilleure expérience de développement aux constructeurs Solana.
+
+Développé par l'équipe [TxTx](https://x.com/txtx_sol), Surfpool intègre parfaitement l'Infrastructure as Code dans les projets basés sur Anchor, permettant des déploiements reproductibles, auditables et sécurisés sur n'importe quel réseau Solana, privé ou public.
+
+<ArticleSection name="Premiers pas" id="first-steps" level="h2" />
+
+Tout ce dont vous avez besoin pour exécuter Surfnet est inclus dans le SDK Surfpool. Comme l'installation varie selon le système d'exploitation, suivez la [page d'installation officielle](https://docs.surfpool.run/install) pour votre configuration spécifique.
+
+Après avoir installé le SDK Surfpool, démarrez Surfnet avec :
+
+```bash
+surfpool start
+```
+
+Cela démarre Surfnet sur le port standard du validateur local (`http://127.0.0.1:8899`) avec une interface utilisateur en terminal affichant :
+- **Slots et Epoch** : Les slots en cours d'exécution se traitent automatiquement toutes les 400ms. Utilisez **Tab** pour avancer manuellement au slot suivant, ou la **barre d'espace** pour mettre en pause/reprendre la production automatique de blocs
+- **Journaux de transactions** : Flux d'activité horodaté montrant tout ce que vos transactions exécutent
+
+Pour une expérience basée sur navigateur, connectez-vous à Surfpool Studio via [ce lien](http://127.0.0.1:8899).
+
+> Surfpool Studio inclut toutes les fonctionnalités de l'interface terminal plus des capacités supplémentaires comme le voyage dans le temps et l'ajout de jetons à n'importe quel compte pour n'importe quel mint.
+
+### Déploiement de programmes
+
+Après avoir configuré Surfnet, déployez votre programme et commencez à construire.
+
+**Programmes Anchor** : Utilisez `anchor deploy` avec votre `Anchor.toml` configuré pour `[programs.localnet]`.
+
+**Programmes Pinocchio** : Déployez via Solana CLI avec votre configuration définie sur localnet : `solana program deploy ./target/deploy/your_program.so --program-id ./target/deploy/your_program-keypair.json`
+
+> L'exécution de `surfpool start` dans un espace de travail Anchor vous invite à utiliser l'Infrastructure as Code pour un déploiement automatique fluide de votre programme sur Surfnet.
+
+### Test des programmes
+
+Après le déploiement sur localnet, connectez-vous à Surfnet en ciblant le validateur local :
+
+```ts
+import { Connection } from "@solana/web3.js";
+
+const connection = new Connection("http://localhost:8899", "confirmed");
+```

@@ -1,0 +1,84 @@
+import { ArticleSection } from "../../../../components/ArticleSection/ArticleSection";
+
+# sBPF Assembly 101
+
+![Introduction à l'assembleur](/graphics/course-banners/introduction-to-assembly.png)
+
+Pour comprendre l'assembleur sBPF et son rôle dans les programmes Solana, nous devons d'abord comprendre le langage d'assemblage et comment il fait le pont entre le code de haut niveau et l'exécution machine.
+
+<ArticleSection name="Le langage d'assemblage" id="the-assembly-language" level="h2" />
+
+L'assembleur est la forme lisible par l'humain du code machine : les instructions réelles que les processeurs exécutent. Il sert de pont entre les langages de programmation de haut niveau et le code binaire que les ordinateurs comprennent.
+
+Lorsque vous écrivez du code Rust comme :
+
+```rust
+let result = a + b;
+```
+
+Le compilateur traduit cela à travers plusieurs étapes :
+1. Source Rust → analysée et interprétée
+2. Représentation intermédiaire → optimisée
+3. Code assembleur → instructions lisibles par l'humain
+4. Code machine → binaire que le processeur exécute
+
+L'assembleur occupe l'étape 3 : la dernière forme lisible par l'humain avant la conversion en binaire. Chaque instruction d'assemblage correspond exactement à une opération du processeur : additionner des nombres, charger de la mémoire ou sauter vers différentes sections de code.
+
+<ArticleSection name="La machine virtuelle sBPF" id="the-sbpf-virtual-machine" level="h2" />
+
+Solana sBPF est la variante personnalisée de Solana du jeu d'instructions et de la machine virtuelle Berkeley Packet Filter étendu (eBPF) qui exécute chaque programme on-chain. Il crée un environnement d'exécution spécialisé : une machine à registres 64 bits qui se situe entre votre programme et le CPU natif du validateur.
+
+Considérez sBPF comme un ordinateur conçu spécifiquement pour l'exécution blockchain : suffisamment rapide pour les transactions à haut débit, mais assez contraint pour garantir la sécurité et le déterminisme sur des milliers de validateurs.
+
+Contrairement à l'assembleur natif qui s'exécute directement sur votre CPU, le code sBPF s'exécute dans un environnement de machine virtuelle contrôlé. Cette machine virtuelle garantit la sécurité en vérifiant chaque instruction avant l'exécution, empêchant les plantages, les boucles infinies et les accès mémoire non autorisés.
+
+Malgré ces contraintes de sécurité, sBPF maintient des performances élevées grâce à la compilation `just-in-time` qui atteint des vitesses d'exécution quasi natives.
+
+La machine virtuelle assure également une exécution déterministe : des programmes identiques avec des entrées identiques produisent des résultats identiques sur tous les validateurs du monde entier. Cette cohérence est cruciale pour le consensus de la blockchain.
+
+De plus, sBPF inclut des appels système pour l'accès aux comptes, les appels entre programmes et l'interaction avec l'environnement d'exécution.
+
+### Pourquoi comprendre l'assembleur sBPF est important
+
+Bien que le compilateur Rust traduise efficacement le code de haut niveau en instructions sBPF, comprendre l'assembleur offre plusieurs avantages :
+- **Comprendre les coûts de calcul** : Chaque instruction sBPF consomme des unités de calcul (CUs). Une seule ligne de Rust peut se compiler en centaines d'instructions—l'assembleur révèle pourquoi certaines opérations sont coûteuses.
+- **Tailles de programme réduites** : Les programmes écrits directement en assembleur sBPF sont considérablement plus petits que leurs équivalents Rust compilés, réduisant les coûts de déploiement et améliorant les temps de chargement.
+- **Opportunités d'optimisation** : Le compilateur Rust génère du code sûr et correct, mais pas toujours le plus efficace. L'assembleur expose les vérifications de sécurité redondantes et les séquences d'instructions sous-optimales.
+- **Débogage et analyse** : Lorsque les programmes se comportent de manière inattendue, l'assembleur fournit la vérité fondamentale. Vous pouvez tracer exactement quelles instructions ont été exécutées et identifier les points de défaillance.
+
+### Architecture
+
+sBPF utilise une architecture load-store avec 10 registres à usage général, un pointeur de pile en lecture seule, et aucun mode d'adressage complexe.
+
+Cette simplicité est intentionnelle : moins de variantes d'instructions permettent une vérification plus rapide, une compilation JIT plus rapide et des performances plus prévisibles.
+
+Chaque fois qu'un programme eBPF est chargé dans le noyau, son bytecode est traduit en instructions machine natives spécifiques à l'architecture du processeur hôte par le compilateur JIT, puis est exécuté par la VM.
+
+### Exécution
+
+Les programmes sBPF s'exécutent selon un processus simple. Le compteur de programme (`PC`) suit quelle instruction exécuter ensuite, comme un marque-page dans votre liste d'instructions.
+
+Le cycle d'exécution suit ces étapes :
+1. **Récupération** : Lire l'instruction à l'adresse du compteur de programme
+2. **Décodage** : Interpréter le format de l'instruction et ses opérandes
+3. **Exécution** : Effectuer l'opération (modifier les registres, accéder à la mémoire ou changer le flux de contrôle)
+4. **Avancement** : Déplacer le compteur de programme vers l'instruction suivante (ou sauter pour les branchements)
+5. **Répétition** : Continuer jusqu'à la sortie du programme
+
+Chaque instruction effectue exactement une opération : arithmétique, accès mémoire, comparaison ou appel de fonction. Cette conception d'une instruction par opération rend les programmes sBPF prévisibles et analysables.
+
+<ArticleSection name="Le pipeline du compilateur JIT" id="the-jit-compiler-pipeline" level="h2" />
+
+Les programmes sBPF atteignent des performances élevées grâce à la compilation Just-In-Time (JIT).
+
+Lorsque vous déployez un programme sur Solana, le runtime effectue deux opérations :
+- **Vérification** : Assure la sécurité du programme en vérifiant l'absence de boucles infinies, d'accès mémoire invalides et de plantages potentiels. Le vérificateur analyse chaque chemin d'exécution possible pour garantir un fonctionnement sûr.
+- **Compilation** : Convertit les instructions sBPF en code machine natif qui s'exécute directement sur le CPU du validateur. Les opérations simples comme `add64 r1, r2` deviennent des instructions d'addition natives uniques, tandis que les opérations complexes reçoivent des vérifications de sécurité supplémentaires tout en restant compilées en code natif efficace.
+
+Cette approche échange le temps de déploiement contre la vitesse d'exécution. Les programmes sont vérifiés et compilés une seule fois lors du déploiement mais exécutés des milliers de fois, ce qui en fait un excellent compromis pour les performances de la blockchain.
+
+Le processus de vérification JIT parcourt tous les chemins possibles du programme, vérifiant que les accès mémoire restent dans les limites, que les sauts ciblent des adresses valides et que l'exécution se termine dans les limites de calcul.
+
+Le processus de compilation JIT traduit chaque instruction sBPF en instructions CPU natives équivalentes. Comme la plupart de l'exécution se fait en code natif, les frais généraux de la machine virtuelle sont minimes.
+
+> Comprendre que sBPF se compile en code natif explique pourquoi les opérations arithmétiques sont rapides tandis que les appels système qui traversent vers l'environnement d'exécution ont une surcharge. Cette connaissance guide les décisions d'optimisation.

@@ -1,0 +1,119 @@
+# Ouvrir un coffre-fort
+
+L'instruction `open` crée un coffre-fort à adresse dérivée du programme (PDA) où les lamports seront déposés en toute sécurité. Ce PDA utilise une clé publique hachée comme graine, garantissant que seul le détenteur de la clé originale pourra retirer les fonds ultérieurement.
+
+Les PDA offrent un moyen sécurisé de stocker des fonds car :
+- Seul votre programme peut contrôler le compte (aucune clé privée n'existe)
+- L'adresse du coffre-fort est dérivée de manière déterministe à partir du hash de l'utilisateur
+- Les retraits ne peuvent s'effectuer que via la logique de votre programme
+
+<ArticleSection name="Comptes requis" id="required-accounts" level="h2" />
+
+L'instruction nécessite ces comptes :
+- `payer` : Paie pour la création du coffre-fort (doit être signataire et mutable)
+- `vault` : Le PDA en cours d'initialisation (doit être mutable)  
+- `system_program` : Requis pour la création du compte (doit être exécutable)
+
+Dans le code, cela ressemble à :
+
+```rust
+pub struct OpenVaultAccounts<'a> {
+    pub payer: &'a AccountInfo,
+    pub vault: &'a AccountInfo,
+}
+
+impl<'a> TryFrom<&'a [AccountInfo]> for OpenVaultAccounts<'a> {
+    type Error = ProgramError;
+ 
+    fn try_from(accounts: &'a [AccountInfo]) -> Result<Self, Self::Error> {
+        let [payer, vault, _system_program] = accounts else {
+            return Err(ProgramError::NotEnoughAccountKeys);
+        };
+ 
+        Ok(Self { payer, vault })
+    }
+}
+```
+
+> La validation des comptes est gérée par le CPI `CreateAccount`. Si les comptes ne répondent pas aux exigences (signataire, mutabilité, exécutabilité), l'instruction échouera automatiquement.
+
+<ArticleSection name="Données d'instruction" id="instruction-data" level="h2" />
+
+Deux éléments de données sont requis :
+- `hash` : Hash SHA-256 de la clé publique de la paire de clés winternitz de l'utilisateur ([u8; 32])
+- `bump` : Bump de dérivation PDA transmis depuis le client (u8)
+
+> Nous transmettons le bump depuis le client plutôt que de le dériver sur la chaîne pour économiser les coûts de calcul.
+
+Voici à quoi cela ressemble dans le code :
+
+```rust
+pub struct OpenVaultInstructionData {
+    pub hash: [u8; 32],
+    pub bump: [u8; 1],
+}
+
+impl<'a> TryFrom<&'a [u8]> for OpenVaultInstructionData {
+    type Error = ProgramError;
+ 
+    fn try_from(data: &'a [u8]) -> Result<Self, Self::Error> {
+        if data.len() != core::mem::size_of::<OpenVaultInstructionData>() {
+            return Err(ProgramError::InvalidInstructionData);
+        }
+
+        let hash = data[0..32].try_into().map_err(|_| ProgramError::InvalidInstructionData)?;
+        let bump = data[32..33].try_into().map_err(|_| ProgramError::InvalidInstructionData)?;
+ 
+        Ok(Self { hash, bump })
+    }
+}
+```
+
+> Ici encore, les paramètres invalides sont auto-correctifs : passer des hachages incorrects bloque le coffre-fort, passer des bumps incorrects fait échouer la dérivation PDA.
+
+<ArticleSection name="Logique d'instruction" id="instruction-logic" level="h2" />
+
+L'instruction crée un PDA vide attribué à notre programme. Bien que le compte ne contienne aucune donnée, la propriété du programme garantit que les retraits ne peuvent se produire que par notre logique contrôlée.
+
+> Même les comptes vides doivent être exemptés de loyer pour persister sur Solana.
+
+Voici à quoi cela ressemble dans le code :
+
+```rust
+pub struct OpenVault<'a> {
+    pub accounts: OpenVaultAccounts<'a>,
+    pub instruction_data: OpenVaultInstructionData,
+}
+
+impl<'a> TryFrom<(&'a [u8], &'a [AccountInfo])> for OpenVault<'a> {
+    type Error = ProgramError;
+
+    fn try_from((data, accounts): (&'a [u8], &'a [AccountInfo])) -> Result<Self, Self::Error> {
+        let instruction_data = OpenVaultInstructionData::try_from(data)?;
+        let accounts = OpenVaultAccounts::try_from(accounts)?;
+
+        Ok(Self { accounts, instruction_data })
+    }
+}
+
+impl<'a> OpenVault<'a> {
+    pub const DISCRIMINATOR: &'a u8 = &0;
+ 
+    pub fn process(&self) -> ProgramResult {
+        let lamports = Rent::get()?.minimum_balance(0);
+        let seeds = [Seed::from(&self.instruction_data.hash), Seed::from(&self.instruction_data.bump)];
+
+        // Create our vault
+        CreateAccount {
+            from: self.accounts.payer,
+            to: self.accounts.vault,
+            lamports,
+            space: 0,
+            owner: &crate::ID,
+        }
+        .invoke_signed(&[Signer::from(&seeds)])
+    }
+}
+```
+
+> Cette instruction crée uniquement la structure du coffre-fort. Les dépôts sont gérés séparément par de simples transferts de lamports vers le compte du coffre-fort.

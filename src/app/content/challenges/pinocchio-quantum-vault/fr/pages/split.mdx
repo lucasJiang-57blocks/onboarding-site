@@ -1,0 +1,148 @@
+# Fractionnement de coffre-fort
+
+L'instruction `split` permet des retraits partiels de coffres-forts résistants aux technologies quantiques en distribuant des lamports sur plusieurs comptes. Ceci est essentiel pour les schémas de signature Winternitz, qui ne peuvent être utilisés qu'une seule fois en toute sécurité.
+
+Contrairement à la cryptographie traditionnelle, les signatures Winternitz deviennent vulnérables après une seule utilisation. L'instruction de fractionnement vous permet de :
+- Distribuer des paiements à plusieurs destinataires en une seule transaction
+- Transférer les fonds restants vers un nouveau coffre-fort quantique avec une nouvelle paire de clés (en transmettant un coffre-fort quantique comme compte `refund`)
+
+<ArticleSection name="Comptes requis" id="required-accounts" level="h2" />
+
+L'instruction nécessite trois comptes :
+
+- `vault` : Coffre-fort source contenant les lamports stockés (doit être modifiable)
+- `split` : Compte destinataire pour le montant spécifié (doit être modifiable)  
+- `refund` : Compte destinataire pour le solde restant du coffre-fort (doit être modifiable)
+
+Le compte `refund` est souvent un nouveau coffre-fort quantique avec une nouvelle paire de clés Winternitz, assurant une sécurité continue pour les fonds restants.
+
+Voici à quoi cela ressemble dans le code :
+
+```rust
+pub struct SplitVaultAccounts<'a> {
+    pub vault: &'a AccountInfo,
+    pub split: &'a AccountInfo,
+    pub refund: &'a AccountInfo,
+}
+
+impl<'a> TryFrom<&'a [AccountInfo]> for SplitVaultAccounts<'a> {
+    type Error = ProgramError;
+
+    fn try_from(accounts: &'a [AccountInfo]) -> Result<Self, Self::Error> {
+        let [vault, split, refund] = accounts else {
+            return Err(ProgramError::NotEnoughAccountKeys);
+        };
+
+        Ok(Self { vault, split, refund })
+    }
+}
+```
+
+> La validation des comptes est gérée par le runtime. Si les comptes ne répondent pas aux exigences (modifiabilité), l'instruction échouera automatiquement.
+
+<ArticleSection name="Données d'instruction" id="instruction-data" level="h2" />
+
+Trois éléments de données sont requis :
+- `signature` : Signature Winternitz prouvant la propriété de la paire de clés du coffre-fort
+- `amount` : Lamports à transférer au compte fractionné (8 octets, little-endian)
+- `bump` : Bump de dérivation PDA pour optimisation (1 octet)
+
+Voici à quoi cela ressemble dans le code :
+
+```rust
+pub struct SplitVaultInstructionData {
+    pub signature: WinternitzSignature,
+    pub amount: [u8; 8],
+    pub bump: [u8; 1],
+}
+
+impl<'a> TryFrom<&'a [u8]> for SplitVaultInstructionData {
+    type Error = ProgramError;
+
+    fn try_from(data: &'a [u8]) -> Result<Self, Self::Error> {
+        if data.len() != core::mem::size_of::<SplitVaultInstructionData>() {
+            return Err(ProgramError::InvalidInstructionData);
+        }
+
+        let mut signature_array = MaybeUninit::<[u8; 896]>::uninit();
+        unsafe {
+            core::ptr::copy_nonoverlapping(data[0..896].as_ptr(), signature_array.as_mut_ptr() as *mut u8, 896);
+        }
+        
+        Ok(Self { 
+            signature: WinternitzSignature::from(unsafe { signature_array.assume_init() }),
+            bump: data[896..897].try_into().map_err(|_| ProgramError::InvalidInstructionData)?,
+            amount: data[897..905].try_into().map_err(|_| ProgramError::InvalidInstructionData)?,
+        })
+    }
+}
+```
+
+<ArticleSection name="Logique d'instruction" id="instruction-logic" level="h2" />
+
+Le processus de vérification suit ces étapes :
+
+1. Assemblage du message : Un message de 72 octets est construit contenant : le montant à fractionner, la clé publique du compte `split` et la clé publique du compte `refund`
+
+2. Vérification de signature : La signature Winternitz est utilisée pour récupérer le hash de la clé publique originale, qui est ensuite comparé aux seeds de dérivation du PDA du coffre-fort.
+
+3. Validation du PDA : Une vérification rapide d'équivalence assure que le hash récupéré correspond au PDA du coffre-fort, prouvant que le signataire est propriétaire du coffre-fort.
+
+4. Distribution des fonds si la validation réussit : le montant spécifié est transféré au compte `split`, le solde restant est transféré au compte `refund` et le compte `vault` est fermé.
+
+> Comme le programme possède le compte `vault`, vous pouvez transférer des lamports directement sans avoir à appeler une Invocation Inter-Programme (CPI).
+
+Voici à quoi cela ressemble dans le code :
+
+```rust
+pub struct SplitVault<'a> {
+    pub accounts: SplitVaultAccounts<'a>,
+    pub instruction_data: SplitVaultInstructionData,
+}
+
+impl<'a> TryFrom<(&'a [u8], &'a [AccountInfo])> for SplitVault<'a> {
+    type Error = ProgramError;
+
+    fn try_from((data, accounts): (&'a [u8], &'a [AccountInfo])) -> Result<Self, Self::Error> {
+        let instruction_data = SplitVaultInstructionData::try_from(data)?;
+        let accounts = SplitVaultAccounts::try_from(accounts)?;
+
+        Ok(Self { accounts, instruction_data })
+    }
+}
+
+impl<'a> SplitVault<'a> {
+    pub const DISCRIMINATOR: &'a u8 = &1;
+
+    pub fn process(&self) -> ProgramResult {
+        // Assemble our Split message
+        let mut message = [0u8; 72];
+        message[0..8].clone_from_slice(&self.instruction_data.amount);
+        message[8..40].clone_from_slice(self.accounts.split.key());
+        message[40..].clone_from_slice(self.accounts.refund.key());
+
+        // Recover our pubkey hash from the signature
+        let hash = self.instruction_data.signature.recover_pubkey(&message).merklize();
+
+        // Fast PDA equivalence check
+        if solana_nostd_sha256::hashv(&[
+            hash.as_ref(),
+            self.instruction_data.bump.as_ref(),
+            crate::ID.as_ref(),
+            b"ProgramDerivedAddress",
+        ])
+        .ne(self.accounts.vault.key())
+        {
+            return Err(ProgramError::MissingRequiredSignature);
+        }
+
+        // Close Vault, send split balance to Split account, refund remainder to Refund account
+        *self.accounts.split.try_borrow_mut_lamports()? += u64::from_le_bytes(self.instruction_data.amount);
+        *self.accounts.refund.try_borrow_mut_lamports()? += self.accounts.vault.lamports().saturating_sub(u64::from_le_bytes(self.instruction_data.amount));
+
+        self.accounts.vault.close()
+    }
+}
+```
+
+> La reconstruction du message empêche les attaques par rejeu de signature où des acteurs malveillants substituent différents comptes destinataires tout en exploitant par MEV des signatures valides capturées depuis le mempool.

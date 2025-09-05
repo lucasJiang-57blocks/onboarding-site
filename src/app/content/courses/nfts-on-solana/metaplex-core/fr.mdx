@@ -1,0 +1,192 @@
+import { ArticleSection } from "../../../../components/ArticleSection/ArticleSection";
+
+# Programme Metaplex Core
+
+Le programme Metaplex Core répond aux problèmes de complexité et de coût inhérents à l'architecture multi-comptes du programme Token Metadata. Alors que Token Metadata s'appuie sur SPL-Token comme fondation, nécessitant plusieurs comptes pour chaque NFT, cette approche crée des implémentations coûteuses et volumineuses qui pèsent à la fois sur les utilisateurs et sur le réseau.
+
+Lancé en 2024, Metaplex Core représente un programme ultra-léger conçu spécifiquement pour les opérations NFT. Contrairement à son prédécesseur, Core fonctionne indépendamment sans dépendances SPL-Token, gérant les opérations de frappe, de transfert, de destruction et les comportements personnalisables grâce à sa propre logique de programme.
+
+Cette norme de nouvelle génération emploie une conception à compte unique qui réduit considérablement les coûts de frappe tout en améliorant les performances globales du réseau grâce à son système de plugins flexible.
+
+<ArticleSection name="Assets" id="assets" level="h2" />
+
+L'aspect révolutionnaire de Metaplex Core réside dans sa structure de compte unifiée qui élimine la séparation traditionnelle entre les comptes de frappe et les comptes de jetons.
+
+Puisque les NFT maintiennent une propriété unique avec un seul détenteur, le programme stocke la relation entre le portefeuille et l'actif directement dans le compte d'actif lui-même.
+
+Cette conception est intuitivement logique si l'on considère que le système de compte de jetons original a été créé pour gérer des milliers de propriétaires par frappe, un scénario qui ne s'applique jamais aux jetons non fongibles.
+
+La structure d'Asset démontre cette approche axée sur l'efficacité à travers ses exigences minimales en termes de champs :
+
+```rust
+#[derive(Clone, BorshSerialize, BorshDeserialize, Debug, ShankAccount, Eq, PartialEq)]
+pub struct AssetV1 {
+    /// The account discriminator.
+    pub key: Key,
+    /// The owner of the asset.
+    pub owner: Pubkey,
+    /// The update authority of the asset.
+    pub update_authority: UpdateAuthority,
+    /// The name of the asset.
+    pub name: String,
+    /// The URI of the asset that points to the off-chain data.
+    pub uri: String,
+    /// The sequence number used for indexing with compression.
+    pub seq: Option<u64>,
+}
+```
+
+Cette structure représente le minimum absolu de données requises pour des opérations NFT fonctionnelles.
+
+Les champs de compte `Mint` traditionnels deviennent redondants dans ce contexte puisque : l'approvisionnement égale toujours un, les décimales égalent toujours zéro, l'autorité de frappe devrait rester non définie, et l'autorité de gel peut être consolidée avec le champ d'autorité de mise à jour.
+
+De même, la plupart des fonctionnalités du compte `Token` s'intègrent directement dans la structure de l'actif.
+
+L'absence d'un mécanisme explicite de gel démontre la philosophie de conception intelligente de Core.
+
+Plutôt que de réserver de l'espace pour des fonctionnalités que de nombreux actifs n'utilisent jamais, Core implémente la fonctionnalité de gel via son système de plugins, ajoutant des capacités à la demande plutôt que de maintenir des champs inutilisés.
+
+Cette approche optimise les coûts de stockage tout en préservant toutes les fonctionnalités pour les actifs qui nécessitent des capacités de gel.
+
+L'appartenance à une collection bénéficie d'un traitement tout aussi réfléchi grâce au système d'énumération d'autorité de mise à jour : puisque les actifs groupés partagent généralement la même autorité de mise à jour, Core exploite cette relation pour éliminer le stockage redondant des champs :
+
+```rust
+pub enum UpdateAuthority {
+    None,
+    Address(Pubkey),
+    Collection(Pubkey),
+}
+```
+
+Le champ d'autorité de mise à jour remplit trois fonctions en indiquant les actifs immuables via `None`, les actifs indépendants via des adresses spécifiques, ou les membres de collection qui héritent de l'autorité de mise à jour de leur collection parente.
+
+Cette solution élégante réduit les besoins en stockage tout en maintenant des relations d'autorité claires et une vérification d'appartenance à la collection.
+
+<ArticleSection name="Collections" id="collections" level="h2" />
+
+Les collections dans Metaplex Core représentent des ensembles groupés d'actifs qui partagent des relations thématiques, créatives ou fonctionnelles.
+
+Contrairement aux collections NFT traditionnelles qui s'appuient sur des systèmes de vérification externes, les collections Core établissent des relations vérifiables sur la chaîne entre les actifs grâce à leur structure d'autorité intégrée.
+
+La création d'une collection commence par l'établissement d'un Actif de Collection qui sert de compte parent faisant autorité pour tous les actifs membres.
+
+Cet Actif de Collection fonctionne à la fois comme hub organisationnel et comme référentiel de métadonnées pour les informations concernant l'ensemble de la collection, y compris le nom de la collection, sa description et ses images représentatives.
+
+Le compte de collection agit également comme un point de contrôle central pour les plugins qui s'appliquent à tous les actifs membres, permettant aux créateurs d'implémenter des comportements uniformes dans toute leur collection.
+
+```rust
+pub struct CollectionV1 {
+    /// The account discriminator.
+    pub key: Key, //1
+    /// The update authority of the collection.
+    pub update_authority: Pubkey, //32
+    /// The name of the collection.
+    pub name: String, //4
+    /// The URI that links to what data to show for the collection.
+    pub uri: String, //4
+    /// The number of assets minted in the collection.
+    pub num_minted: u32, //4
+    /// The number of assets currently in the collection.
+    pub current_size: u32, //4
+}
+```
+
+La structure Collection maintient des statistiques essentielles grâce à ses champs `num_minted` et `current_size`, qui suivent le nombre total d'actifs jamais créés dans la collection et le nombre actuel d'actifs qui restent actifs. 
+
+Ces métriques permettent des analyses précises de la collection et prennent en charge des fonctionnalités comme les éditions limitées ou le suivi des destructions sans nécessiter de services d'indexation externes.
+
+Lorsqu'un actif définit son `update_authority` sur `Collection(collection_pubkey)`, il hérite automatiquement de la structure d'autorité de la collection tout en établissant une appartenance vérifiable. Cette conception élimine le besoin de comptes de vérification séparés ou de systèmes d'attestation externes, créant des relations de collection immuables qui peuvent être validées entièrement sur la chaîne.
+
+<ArticleSection name="Plugins" id="plugins" level="h2" />
+
+Le système de plugins représente la fonctionnalité la plus innovante de Metaplex Core, répondant aux limitations des comportements rigides et prédéfinis qui caractérisaient les normes NFT antérieures. 
+
+Alors que l'ancien programme Token Metadata nécessitait des solutions de contournement complexes comme les NFT programmables pour des fonctionnalités personnalisées, l'architecture de plugins de Core permet une personnalisation granulaire sans sacrifier la simplicité ou les performances.
+
+L'approche révolutionnaire de Core traite les données sur la chaîne de manière fluide plutôt que de les verrouiller dans des structures fixes. Cette philosophie de conception permet un système flexible basé sur des plugins qui répond à divers cas d'utilisation tout en maintenant une gestion efficace des comptes. 
+
+Chaque plugin définit son propre modèle de permission, spécifiant exactement qui peut effectuer des actions particulières, tandis que le système de validation de Core empêche les conflits entre différentes autorités et permissions.
+
+L'architecture du compte se divise en deux composants distincts : 
+- La section de données principales contenant les informations essentielles de l'actif avec des longueurs de champs prévisibles
+- La section de métadonnées de plugin optionnelle où résident les fonctionnalités supplémentaires et les comportements personnalisés. 
+
+Cette séparation garantit que les actifs de base restent légers tandis que les fonctionnalités complexes s'adaptent à la demande.
+
+Les métadonnées du plugin s'organisent selon une structure en trois parties : l'en-tête, les plugins individuels et le registre qui coordonne l'ensemble.
+
+```
+Header | Plugin1 | Plugin2 | Plugin3 | Registry
+```
+
+L'en-tête du plugin sert de point d'entrée, contenant un pointeur `plugin_registry_offset` qui indique l'emplacement du registre dans le compte :
+
+```rust
+pub struct PluginHeaderV1 {
+    /// The Discriminator of the header which doubles as a Plugin metadata version.
+    pub key: Key, // 1
+    /// The offset to the plugin registry stored at the end of the account.
+    pub plugin_registry_offset: usize, // 8
+}
+```
+
+Le registre des plugins fonctionne comme un centre de coordination, maintenant des vecteurs d'entrées `RegistryRecord` internes et d'entrées `ExternalRegistryRecord` pour les plugins tiers.
+
+Chaque enregistrement contient le type de plugin, l'autorité gouvernante et l'emplacement de décalage dans le compte :
+
+```rust
+pub struct PluginRegistryV1 {
+    /// The Discriminator of the header which doubles as a plugin metadata version.
+    pub key: Key, // 1
+    /// The registry of all plugins.
+    pub registry: Vec<RegistryRecord>, // 4
+    /// The registry of all adapter, third party, plugins.
+    pub external_registry: Vec<ExternalRegistryRecord>, // 4
+}
+
+pub struct RegistryRecord {
+    /// The type of plugin.
+    pub plugin_type: PluginType, // 2
+    /// The authority who has permission to utilize a plugin.
+    pub authority: Authority, // Variable
+    /// The offset to the plugin in the account.
+    pub offset: usize, // 8
+}
+
+pub struct ExternalRegistryRecord {
+    /// The adapter, third party plugin type.
+    pub plugin_type: ExternalPluginAdapterType,
+    /// The authority of the external plugin adapter.
+    pub authority: Authority,
+    /// The lifecycle events for which the external plugin adapter is active.
+    pub lifecycle_checks: Option<Vec<(HookableLifecycleEvent, ExternalCheckResult)>>,
+    /// The offset to the plugin in the account.
+    pub offset: usize, // 8
+    /// For plugins with data, the offset to the data in the account.
+    pub data_offset: Option<usize>,
+    /// For plugins with data, the length of the data in the account.
+    pub data_len: Option<usize>,
+}
+```
+
+La récupération des plugins suit un processus systématique qui exploite cette structure organisée.
+
+Le système charge d'abord les données de l'actif pour déterminer l'emplacement de l'en-tête du plugin, puis utilise le décalage de l'en-tête pour localiser le registre, et enfin parcourt les enregistrements du registre pour compiler la liste complète des plugins :
+
+```rust
+pub fn list_plugins(account: &AccountInfo) -> Result<Vec<PluginType>, ProgramError> {
+    let asset = AssetV1::load(account, 0)?;
+    if asset.get_size() == account.data_len() {
+        return Err(MplCoreError::PluginNotFound.into());
+    }
+    let header = PluginHeaderV1::load(account, asset.get_size())?;
+    let PluginRegistryV1 { registry, .. } =
+        PluginRegistryV1::load(account, header.plugin_registry_offset)?;
+    Ok(registry
+        .iter()
+        .map(|registry_record| registry_record.plugin_type)
+        .collect())
+}
+```
+
+> Pour en savoir plus sur l'utilisation du programme `Core`, consultez la [documentation officielle](https://developers.metaplex.com/core)

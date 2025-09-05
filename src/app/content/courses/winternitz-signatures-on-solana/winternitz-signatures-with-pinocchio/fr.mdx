@@ -1,0 +1,221 @@
+import { ArticleSection } from "../../../../components/ArticleSection/ArticleSection";
+
+# Signatures Winternitz avec Pinocchio
+
+[Dean](https://x.com/deanmlittle) de l'équipe Blueshift a publié le premier crate permettant la compatibilité Pinocchio pour créer et vérifier les signatures Winternitz.
+
+Cette implémentation est particulièrement précieuse pour fournir une sécurité résistante aux ordinateurs quantiques pour les applications blockchain.
+
+<ArticleSection name="Introduction" id="introduction" level="h2" />
+
+Cette implémentation utilise `w = 8` pour équilibrer les contraintes de Solana : limites de taille des transactions et restrictions d'unités de calcul.
+
+Le paramètre Winternitz `w` crée un compromis fondamental entre la taille de la signature et les exigences de calcul :
+- Des valeurs w plus élevées signifient des signatures plus petites mais plus de calcul, car la vérification nécessite plus d'opérations de hachage par composant de signature
+- Des valeurs w plus basses signifient des signatures plus grandes mais moins de calcul, car la vérification nécessite moins d'opérations de hachage par composant de signature
+
+Solana impose deux contraintes critiques qui façonnent le choix des paramètres :
+- Contrainte de taille de transaction (1024 octets) : Avec `w = 8`, une implémentation complète produit des signatures de exactement 1024 octets en utilisant des hachages de 256 bits (32 octets × 32 composants). Cela consomme tout l'espace de transaction, ne laissant aucune place pour les frais généraux de transaction et les données supplémentaires.
+- Contrainte d'unités de calcul : Passer à `w = 16` réduirait de moitié la taille de la signature mais dépasserait les limites d'unités de calcul (CU) de Solana pendant la vérification, car chaque composant de signature nécessiterait beaucoup plus d'opérations de hachage.
+
+Comme les limites d'unités de calcul ne peuvent pas être résolues par l'ajustement des paramètres, le problème de taille de signature est abordé en tronquant les signatures à 896 octets et en merklisant les composants restants. Cette approche préserve la sécurité tout en créant un espace essentiel pour les frais généraux de transaction.
+
+C'est pourquoi l'implémentation a opté pour `w = 8` : cela représente le point idéal où les exigences de calcul restent gérables tandis que la troncature de signature offre une solution pratique aux contraintes de taille.
+
+### Génération de clés
+
+Générez une clé privée et dérivez sa clé publique correspondante en utilisant le SDK :
+
+```rust
+use winternitz::{hash::WinternitzKeccak, privkey::WinternitzPrivkey};
+
+// Generate a new random private key
+let privkey = WinternitzPrivkey::generate();
+
+// Derive the corresponding public key
+let pubkey = privkey.pubkey::<WinternitzKeccak>();
+```
+
+La clé publique est dérivée en appliquant la fonction de hachage plusieurs fois aux composants de la clé privée, créant une transformation à sens unique qui garantit la sécurité.
+
+### Signature de messages
+
+```rust
+// Sign a message
+let message = b"Hello, World!";
+let signature = privkey.sign::<WinternitzKeccak>(message);
+```
+
+Le processus de signature génère des composants de signature basés sur le condensé du message, chaque composant nécessitant un nombre spécifique d'opérations de hachage déterminé par les bits correspondants du message.
+
+### Vérification de signature
+
+```rust
+// Recover public key from signature and message
+let recovered_pubkey = signature.recover_pubkey::<WinternitzKeccak>(message);
+
+// Verify by comparing public keys
+assert_eq!(recovered_pubkey, pubkey);
+```
+
+La vérification reconstruit la clé publique à partir de la signature et du message, puis la compare à la clé publique attendue pour confirmer l'authenticité.
+
+<ArticleSection name="Implementation" id="implementation" level="h2" />
+
+Pour implémenter la vérification de signature Winternitz dans votre programme Pinocchio, vous avez besoin :
+1. Du crate `solana-winternitz` : Il fournit les fonctionnalités de base pour la signature Winternitz
+2. La création et la vérification de PDA utilisant une dérivation d'adresse résistante aux attaques quantiques
+
+Commençons par ajouter le crate `solana-winternitz`
+
+```
+cargo add solana-winternitz
+```
+
+### Optimisation de la taille de signature
+
+L'implémentation utilise une approche tronquée pour s'adapter aux contraintes de transaction de Solana :
+- Signature complète (`WinternitzSignature`) : 1024 octets (32 octets × 32 composants).
+- Signature tronquée (`WinternitzCommitmentSignature`) : 896 octets (32 octets × 28 composants).
+- Espace disponible : 128 octets restants pour les frais généraux de transaction
+
+La troncation de hachages de 256 bits à 224 bits maintient une sécurité forte tout en assurant une utilisabilité pratique. Les composants de signature restants sont merklisés pour préserver le modèle de sécurité complet.
+
+### Configuration des PDA résistants aux attaques quantiques
+
+Comme les signatures blockchain traditionnelles restent vulnérables aux attaques quantiques, cette implémentation utilise les Program Derived Addresses (PDA) pour une sécurité quantique.
+
+Les PDA n'ont pas de clés privées associées, ce qui les rend immunisés contre les attaques cryptographiques.
+
+Voici comment créer un PDA à partir d'une clé publique Winternitz :
+
+```rust
+pub struct CreateWinternitzPDA {
+    pub hash: [u8; 32],
+    pub bump: [u8; 1],
+}
+
+impl CreateWinternitzPDA {
+    pub fn deserialize(bytes: &[u8]) -> Result<Self, ProgramError> {
+        let data: [u8; 33] = bytes
+            .try_into()
+            .map_err(|_| ProgramError::InvalidInstructionData)?;
+        let (hash, bump) = array_refs![&data, 32, 1];
+        Ok(Self {
+            hash: *hash,
+            bump: *bump,
+        })
+    }
+
+    pub fn create_pda(&self, accounts: &CreatePDAAccounts) -> ProgramResult {
+        let seeds = [Seed::from(&self.hash), Seed::from(&self.bump)];
+        let signers = [Signer::from(&seeds)];
+        
+        // Create the quantum-secure PDA
+        CreateAccount {
+            from: accounts.payer,
+            to: accounts.vault,
+            lamports: accounts.lamports,
+            space: 0,
+            owner: &crate::ID,
+        }
+        .invoke_signed(&signers)
+    }
+}
+```
+
+> Le hachage utilisé dans la dérivation du PDA est une racine de Merkle créée à partir de 28 des 32 composants de la clé publique. C'est parce que, comme mentionné précédemment, nous ne pouvons intégrer que la signature tronquée.
+
+Le cœur de la vérification Winternitz implique la récupération de la clé publique à partir de la signature et du message, puis la vérification qu'elle correspond au PDA attendu. Voici le flux complet de vérification :
+
+```rust
+pub struct VerifyWinternitzSignature {
+    pub signature: WinternitzSignature,
+    pub bump: [u8; 1],
+}
+
+impl VerifyWinternitzSignature {
+    pub fn deserialize(bytes: &[u8]) -> Result<Self, ProgramError> {
+        if bytes.len() != 897 {
+            return Err(ProgramError::InvalidInstructionData);
+        }
+        let (signature_bytes, bump) = bytes.split_at(896);
+        Ok(Self {
+            signature: WinternitzSignature::from(signature_bytes.try_into().unwrap()),
+            bump: [bump[0]],
+        })
+    }
+
+    pub fn verify_and_execute(&self, accounts: &VerifyAccounts, message: &[u8]) -> ProgramResult {
+        // Recover the public key from signature and message
+        let recovered_pubkey = self.signature.recover_pubkey(message);
+        let hash = recovered_pubkey.merklize();
+        
+        // Verify PDA ownership
+        let expected_pda = solana_nostd_sha256::hashv(&[
+            hash.as_ref(),
+            self.bump.as_ref(),
+            crate::ID.as_ref(),
+            b"ProgramDerivedAddress",
+        ]);
+        
+        if expected_pda.ne(accounts.pda.key()) {
+            return Err(ProgramError::MissingRequiredSignature);
+        }
+        
+        // Execute the protected operation
+        self.execute_protected_operation(accounts)
+    }
+
+    fn execute_protected_operation(&self, accounts: &VerifyAccounts) -> ProgramResult {
+        // Your quantum-secure operation logic here
+        Ok(())
+    }
+}
+```
+
+La fonction `recover_pubkey()` reconstruit la clé publique originale en convertissant le message signé en valeurs de condensat qui spécifient combien de hachages supplémentaires chaque composant nécessite et en produisant 28 composants de clé publique qui ne peuvent être générés qu'avec la clé privée correcte.
+
+La fonction `merklize()` construit ensuite un arbre binaire à partir des 28 composants de la clé publique, produisant une seule racine de 32 octets qui représente de manière unique les 28 composants
+
+<ArticleSection name="Considérations de sécurité" id="security-considerations" level="h2" />
+
+Incluez toujours les paramètres critiques dans le message signé pour éviter toute manipulation :
+
+```rust
+// Construct message with security parameters
+let message = [
+    accounts.recipient.key().as_ref(),     // Prevent recipient substitution
+    &amount.to_le_bytes(),                 // Prevent amount manipulation
+    &expiry_timestamp.to_le_bytes(),       // Prevent replay attacks
+].concat();
+```
+
+### Vérifications d'expiration
+
+Puisque les signatures Winternitz restent valides indéfiniment, implémentez une expiration basée sur le temps :
+
+```rust
+// Verify signature hasn't expired
+let now = Clock::get()?.unix_timestamp;
+let expiry = i64::from_le_bytes(
+    message[40..48].try_into()
+    .map_err(|_| ProgramError::InvalidInstructionData)?
+);
+
+if now > expiry {
+    return Err(ProgramError::InvalidInstructionData);
+}
+```
+
+### Vérifications de clé publique
+
+Assurez-vous que seules les parties autorisées peuvent bénéficier de la signature :
+
+```rust
+// Verify the recipient is authorized
+let intended_recipient = &message[0..32];
+if accounts.recipient.key().as_ref().ne(intended_recipient) {
+    return Err(ProgramError::InvalidAccountOwner);
+}
+```

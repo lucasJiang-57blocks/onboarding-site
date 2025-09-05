@@ -1,0 +1,370 @@
+import { ArticleSection } from "../../../../components/ArticleSection/ArticleSection";
+
+# Anchor avancé
+
+Parfois, l'abstraction réalisée avec Anchor rend impossible la construction de la logique dont notre programme a besoin. Pour cette raison, dans cette section, nous allons parler de l'utilisation de concepts avancés pour travailler avec notre programme.
+
+<ArticleSection name="Indicateurs de fonctionnalités" id="feature-flags" level="h2" />
+
+Les ingénieurs logiciels ont régulièrement besoin d'environnements distincts pour le développement local, les tests et la production. Les indicateurs de fonctionnalités (feature flags) offrent une solution élégante en permettant la compilation conditionnelle et les configurations spécifiques à l'environnement sans avoir à maintenir des bases de code séparées.
+
+### Fonctionnalités Cargo
+
+Les fonctionnalités Cargo offrent un mécanisme puissant pour la compilation conditionnelle et les dépendances optionnelles. Vous définissez des fonctionnalités nommées dans le tableau `[features]` de votre `Cargo.toml`, puis vous les activez ou désactivez selon vos besoins :
+- Activer les fonctionnalités via la ligne de commande : --features feature_name
+- Activer les fonctionnalités pour les dépendances directement dans Cargo.toml
+
+Cela vous donne un contrôle précis sur ce qui est inclus dans votre binaire final.
+
+### Indicateurs de fonctionnalités dans Anchor
+
+Les programmes Anchor utilisent couramment des indicateurs de fonctionnalités pour créer différents comportements, contraintes ou configurations en fonction de l'environnement cible. Utilisez l'attribut `cfg` pour compiler conditionnellement le code :
+
+```rust
+#[cfg(feature = "testing")]
+fn function_for_testing() {
+   // Compiled only when "testing" feature is enabled
+}
+
+#[cfg(not(feature = "testing"))]
+fn function_for_production() {
+   // Compiled only when "testing" feature is disabled
+}
+```
+
+Les indicateurs de fonctionnalités excellent dans la gestion des différences d'environnement. Comme tous les jetons ne sont pas déployés sur le Mainnet et le Devnet, vous avez souvent besoin d'adresses différentes pour différents réseaux :
+
+```rust
+#[cfg(feature = "localnet")]
+pub const TOKEN_ADDRESS: &str = "Local_Token_Address_Here";
+
+#[cfg(not(feature = "localnet"))]
+pub const TOKEN_ADDRESS: &str = "Mainnet_Token_Address_Here";
+```
+
+Cette approche élimine les erreurs de configuration de déploiement et simplifie votre flux de travail de développement en changeant d'environnement au moment de la compilation plutôt qu'à l'exécution.
+
+Voici comment vous le configureriez dans votre fichier `Cargo.toml` :
+
+```toml
+[features]
+default = ["localnet"]
+localnet = []
+```
+
+Après cela, vous pouvez spécifier l'indicateur avec lequel vous souhaitez construire votre programme comme ceci :
+
+```
+# Uses default (localnet)
+anchor build
+
+# Build for mainnet
+anchor build --no-default-features
+```
+
+> Une fois que vous construisez le programme, le binaire n'aura que le drapeau conditionnel que vous avez activé, ce qui signifie qu'une fois testé et déployé, il respectera cette condition.
+
+<ArticleSection name="Travailler avec des comptes bruts" id="working-with-raw-accounts" level="h2" />
+
+Anchor simplifie la gestion des comptes en désérialisant automatiquement les comptes via le contexte du compte :
+
+```rust
+#[derive(Accounts)]
+pub struct Instruction<'info> {
+    pub account: Account<'info, MyAccount>,
+}
+
+#[account]
+pub struct MyAccount {
+    pub data: u8,
+}
+```
+
+Cependant, cette désérialisation automatique devient problématique lorsque vous avez besoin d'un traitement conditionnel des comptes, comme désérialiser et modifier un compte uniquement lorsque des critères spécifiques sont remplis.
+
+Pour les scénarios conditionnels, utilisez `UncheckedAccount` pour reporter la validation et la désérialisation jusqu'à l'exécution. Cela évite les erreurs graves lorsque les comptes pourraient ne pas exister ou lorsque vous devez les valider par programmation :
+
+```rust
+#[derive(Accounts)]
+pub struct Instruction<'info> {
+    /// CHECK: Validated conditionally in instruction logic
+    pub account: UncheckedAccount<'info>,
+}
+
+#[account]
+pub struct MyAccount {
+    pub data: u8,
+}
+
+pub fn instruction(ctx: Context<Instruction>, should_process: bool) -> Result<()> {
+    if should_process {
+        // Deserialize the account data
+        let mut account = MyAccount::try_deserialize(&mut &ctx.accounts.account.to_account_info().data.borrow_mut()[..])
+            .map_err(|_| error!(InstructionError::AccountNotFound))?;
+
+        // Modify the account data
+        account.data += 1;
+
+        // Serialize back the data to the account
+        account.try_serialize(&mut &mut ctx.accounts.account.to_account_info().data.borrow_mut()[..])?;
+    }
+
+    Ok(())
+}
+```
+
+<ArticleSection name="Comptes Zero Copy" id="zero-copy-accounts" level="h2" />
+
+L'environnement d'exécution de Solana impose des limites strictes de mémoire : 4 Ko pour la mémoire de pile et 32 Ko pour la mémoire tas. De plus, la pile augmente de 10 Ko pour chaque compte chargé. Ces contraintes rendent la désérialisation traditionnelle impossible pour les grands comptes, nécessitant des techniques zero-copy pour une gestion efficace de la mémoire.
+
+Lorsque les comptes dépassent ces limites, vous rencontrerez des erreurs de débordement de pile comme : `Stack offset of -30728 exceeded max offset of -4096 by 26632 bytes`
+
+Pour les comptes de taille moyenne, vous pouvez utiliser `Box` pour déplacer les données de la pile vers le tas (comme mentionné dans l'introduction), mais les comptes plus volumineux nécessitent l'implémentation de `zero_copy`.
+
+Le zero-copy contourne complètement la désérialisation automatique en utilisant l'accès direct à la mémoire. Pour définir un type de compte qui utilise le zero-copy, annotez la structure avec `#[account(zero_copy)]` :
+
+```rust
+#[account(zero_copy)]
+pub struct Data {
+    // 10240 bytes - 8 bytes account discriminator
+    pub data: [u8; 10_232],
+}
+```
+
+L'attribut `#[account(zero_copy)]` implémente automatiquement plusieurs traits nécessaires pour la désérialisation zero-copy :
+- `#[derive(Copy, Clone)]`, 
+- `#[derive(bytemuck::Zeroable)]`, 
+- `#[derive(bytemuck::Pod)]`, et 
+- `#[repr(C)]`
+
+> Remarque : Pour utiliser le zero-copy, ajoutez la crate `bytemuck` à vos dépendances avec la fonctionnalité `min_const_generics` pour travailler avec des tableaux de n'importe quelle taille dans vos types zero-copy.
+
+Pour désérialiser un compte zero-copy dans le contexte de votre instruction, utilisez `AccountLoader<'info, T>`, où `T` est votre type de compte zero-copy :
+
+```rust
+#[derive(Accounts)]
+pub struct Instruction<'info> {
+    pub data_account: AccountLoader<'info, Data>,
+}
+```
+
+### Initialisation d'un compte Zero Copy
+
+Il existe deux approches différentes pour l'initialisation, selon la taille de votre compte :
+
+Pour les comptes de moins de 10 240 octets, utilisez directement la contrainte `init` :
+
+```rust
+#[derive(Accounts)]
+pub struct Initialize<'info> {
+    #[account(
+        init,
+        // 10240 bytes is max space to allocate with init constraint
+        space = 8 + 10_232,
+        payer = payer,
+    )]
+    pub data_account: AccountLoader<'info, Data>,
+    #[account(mut)]
+    pub payer: Signer<'info>,
+    pub system_program: Program<'info, System>,
+}
+```
+
+> La contrainte init est limitée à 10 240 octets en raison des limitations CPI. En arrière-plan, init effectue un appel CPI au Programme Système pour créer le compte.
+
+Pour les comptes nécessitant plus de 10 240 octets, vous devez d'abord créer le compte séparément en appelant le Programme Système plusieurs fois, en ajoutant 10 240 octets par transaction. Cela vous permet de créer des comptes jusqu'à la taille maximale de Solana de 10 Mo (10 485 760 octets), contournant ainsi la limitation CPI.
+
+Après avoir créé le compte en externe, utilisez la contrainte `zero` au lieu de `init`. La contrainte `zero` vérifie que le compte n'a pas été initialisé en contrôlant que son discriminateur n'est pas défini :
+
+```rust
+#[account(zero_copy)]
+pub struct Data {
+    // 10,485,780 bytes - 8 bytes account discriminator
+    pub data: [u8; 10_485_752],
+}
+
+#[derive(Accounts)]
+pub struct Initialize<'info> {
+    #[account(zero)]
+    pub data_account: AccountLoader<'info, Data>,
+}
+```
+
+Pour les deux méthodes d'initialisation, appelez `load_init()` pour obtenir une référence mutable aux données du compte et définir le discriminateur du compte :
+
+```rust
+pub fn initialize(ctx: Context<Initialize>) -> Result<()> {
+    let account = &mut ctx.accounts.data_account.load_init()?;
+
+    // Set your account data here
+    // account.data = something;
+
+    Ok(())
+}
+```
+
+### Chargement d'un compte Zero Copy
+
+Une fois initialisé, utilisez `load()` pour lire les données du compte :
+
+```rust
+#[derive(Accounts)]
+pub struct ReadOnly<'info> {
+    pub data_account: AccountLoader<'info, Data>,
+}
+
+pub fn read_only(ctx: Context<ReadOnly>) -> Result<()> {
+    let account = &ctx.accounts.data_account.load()?;
+
+    // Read your data here
+    // let value = account.data;
+    
+    Ok(())
+}
+```
+
+<ArticleSection name="Travailler avec des CPI bruts" id="working-with-raw-cpis" level="h2" />
+
+Anchor simplifie la complexité des invocations inter-programmes (CPI), mais comprendre les mécanismes sous-jacents est crucial pour le développement avancé sur Solana.
+
+Chaque instruction se compose de trois éléments principaux : un `program_id`, un tableau d'`accounts` et des octets `instruction_data` que le Runtime de Solana traite via l'appel système `sol_invoke`.
+
+Au niveau système, Solana exécute les CPI via cet appel système :
+
+```rust
+/// Solana BPF syscall for invoking a signed instruction.
+fn sol_invoke_signed_c(
+    instruction_addr: *const u8,
+    account_infos_addr: *const u8,
+    account_infos_len: u64,
+    signers_seeds_addr: *const u8,
+    signers_seeds_len: u64,
+) -> u64;
+```
+
+Le Runtime reçoit des pointeurs vers vos données d'instruction et informations de compte, puis exécute le programme cible avec ces entrées.
+
+Voici comment invoquer un programme Anchor en utilisant les primitives Solana brutes :
+
+```rust
+pub fn manual_cpi(ctx: Context<MyCpiContext>) -> Result<()> {
+    // Construct instruction discriminator (8-byte SHA256 hash prefix)
+    let discriminator = sha256("global:instruction_name")[0..8]
+    
+    // Build complete instruction data
+    let mut instruction_data = discriminator.to_vec();
+    instruction_data.extend_from_slice(&[additional_instruction_data]); // Your instruction parameters
+    
+    // Define account metadata for the target program
+    let accounts = vec![
+        AccountMeta::new(ctx.accounts.account_1.key(), true),           // Signer + writable
+        AccountMeta::new_readonly(ctx.accounts.account_2.key(), false), // Read-only
+        AccountMeta::new(ctx.accounts.account_3.key(), false),          // Writable
+    ];
+    
+    // Collect account infos for the syscall
+    let account_infos = vec![
+        ctx.accounts.account_1.to_account_info(),
+        ctx.accounts.account_2.to_account_info(),
+        ctx.accounts.account_3.to_account_info(),
+    ];
+    
+    // Create the instruction
+    let instruction = solana_program::instruction::Instruction {
+        program_id: target_program::ID,
+        accounts,
+        data: instruction_data,
+    };
+    
+    // Execute the CPI
+    solana_program::program::invoke(&instruction, &account_infos)?;
+    
+    Ok(())
+}
+
+// For PDA-signed CPIs, use invoke_signed instead:
+pub fn pda_signed_cpi(ctx: Context<PdaCpiContext>) -> Result<()> {
+    // ... instruction construction same as above ...
+    
+    let signer_seeds = &[
+        b"seed",
+        &[bump],
+    ];
+    
+    solana_program::program::invoke_signed(
+        &instruction,
+        &account_infos,
+        &[signer_seeds],
+    )?;
+    
+    Ok(())
+}
+```
+
+### CPI vers un autre programme Anchor
+
+La macro `declare_program!()` d'Anchor permet des invocations inter-programmes typées sans ajouter le programme cible comme dépendance. La macro génère des modules Rust à partir de l'IDL d'un programme, fournissant des assistants CPI et des types de comptes pour des interactions fluides entre programmes.
+
+Placez le fichier IDL du programme cible dans un répertoire `/idls` n'importe où dans la structure de votre projet :
+
+```
+project/
+├── idls/
+│   └── target_program.json
+├── programs/
+│   └── your_program/
+└── Cargo.toml
+```
+
+Ensuite, utilisez la macro pour générer les modules nécessaires :
+
+```
+use anchor_lang::prelude::*;
+
+declare_id!("YourProgramID");
+
+// Generate modules from IDL
+declare_program!(target_program);
+
+// Import the generated types
+use target_program::{
+    accounts::Counter,             // Account types
+    cpi::{self, accounts::*},      // CPI functions and account structs  
+    program::TargetProgram,        // Program type for validation
+};
+
+#[program]
+pub mod your_program {
+    use super::*;
+
+    pub fn call_other_program(ctx: Context<CallOtherProgram>) -> Result<()> {
+        // Create CPI context
+        let cpi_ctx = CpiContext::new(
+            ctx.accounts.target_program.to_account_info(),
+            Initialize {
+                payer: ctx.accounts.payer.to_account_info(),
+                counter: ctx.accounts.counter.to_account_info(),
+                system_program: ctx.accounts.system_program.to_account_info(),
+            },
+        );
+
+        // Execute the CPI using generated helper
+        target_program::cpi::initialize(cpi_ctx)?;
+        
+        Ok(())
+    }
+}
+
+#[derive(Accounts)]
+pub struct CallOtherProgram<'info> {
+    #[account(mut)]
+    pub payer: Signer<'info>,
+    #[account(mut)]
+    pub counter: Account<'info, Counter>,  // Uses generated account type    
+    pub target_program: Program<'info, TargetProgram>,
+    pub system_program: Program<'info, System>,
+}
+```
+
+> Vous pouvez faire un CPI vers un autre programme Anchor en l'ajoutant dans votre `Cargo.toml` sous `[dependencies]` : `callee = { path = "../callee", features = ["cpi"] }` après avoir construit votre programme en faisant `anchor build -- --features cpi` et en utilisant `callee::cpi::<instruction>()`. Cette approche n'est pas recommandée car elle pourrait générer une erreur de dépendance circulaire.
+`

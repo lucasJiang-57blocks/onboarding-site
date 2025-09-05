@@ -1,0 +1,90 @@
+import { ArticleSection } from "../../../../components/ArticleSection/ArticleSection";
+
+# NFTs sur Solana
+
+![NFTs sur Solana](/graphics/course-banners/nfts-on-solana.png)
+
+Les jetons non fongibles (NFTs) sont des jetons numériques avec des caractéristiques spécifiques qui les distinguent des jetons fongibles comme les cryptomonnaies.
+
+Contrairement aux jetons fongibles où chaque unité est identique et interchangeable, les NFTs représentent des actifs numériques uniques et indivisibles qui ne peuvent pas être répliqués ou subdivisés.
+
+<ArticleSection name="Propriétés des NFTs" id="nft-properties" level="h2" />
+
+Pour qu'un jeton soit considéré comme un véritable NFT, il doit posséder ces propriétés essentielles :
+- Indivisibilité : Ne contient pas de décimales, garantissant que vous ne pouvez pas posséder des fractions comme 0,1 d'un NFT
+- Unicité : A une offre d'exactement 1, garantissant qu'une seule instance existe
+- Offre fixe : Aucune autorité de frappe n'existe, empêchant la création de jetons supplémentaires
+- Regroupement : Peut être organisé en collections pour regrouper des jetons similaires tout en maintenant leur unicité individuelle
+- Métadonnées riches : Inclut des données lisibles telles que noms, descriptions, images et autres attributs pour l'affichage dans les explorateurs et portefeuilles
+
+Pour cette raison, la création d'un NFT implique le déploiement d'un contrat intelligent ou d'une interface qui :
+- Crée un compte de frappe sans décimales
+- Frappe un seul jeton dans le portefeuille du propriétaire
+- Révoque l'autorité de frappe pour empêcher toute frappe future
+- Associe des comptes de métadonnées contenant les informations descriptives du jeton
+
+Des protocoles établis simplifient considérablement cette complexité. Les développeurs Solana utilisent couramment des programmes comme `mpl-token-metadata` ou `mpl-core` développés par [Metaplex](https://metaplex.com), qui gèrent les détails techniques d'implémentation et fournissent des interfaces standardisées pour la création et la gestion des NFTs.
+
+<ArticleSection name="Pourquoi les jetons non fongibles sont importants" id="why-non-fungible-tokens-matter" level="h2" />
+
+Les NFTs représentent la première solution technique permettant de prouver la propriété numérique sans intermédiaires de confiance. Avant les NFTs, les actifs numériques existaient uniquement au sein de plateformes centralisées où la propriété pouvait être révoquée arbitrairement.
+
+> Les NFT établissent une propriété qui fonctionne indépendamment au niveau du protocole, créant de véritables droits de propriété numérique.
+
+### Avantages par rapport aux actifs physiques
+
+Les NFT améliorent la propriété des actifs physiques en permettant une logique programmable qui répond à des conditions prédéterminées.
+
+Les contrats intelligents peuvent automatiquement distribuer des redevances aux créateurs chaque fois que leurs NFT sont vendus sur les marchés secondaires.
+
+Les restrictions de transfert peuvent empêcher les mouvements non autorisés d'actifs sensibles, tandis que les mécanismes temporels peuvent débloquer des fonctionnalités ou modifier des propriétés en fonction de dates ou conditions spécifiques.
+
+Certains NFT mettent même à jour leurs propriétés visuelles ou fonctionnelles de manière dynamique, en réponse à des flux de données externes ou aux interactions des utilisateurs.
+
+### Nouveaux modèles économiques
+
+Les NFT débloquent des structures économiques que les systèmes traditionnels ne peuvent pas soutenir.
+
+L'économie des créateurs transforme la façon dont les artistes génèrent des revenus en établissant des flux de redevances perpétuels—chaque fois qu'un NFT change de mains, le créateur original reçoit automatiquement un pourcentage du prix de vente.
+
+Cela crée des modèles de revenus durables qui s'étendent bien au-delà des ventes initiales.
+
+La propriété communautaire émerge à travers la gouvernance collective des NFT, où des groupes peuvent posséder conjointement des actifs numériques précieux et prendre des décisions concernant leur utilisation via des mécanismes de vote décentralisés.
+
+Parallèlement, la rémunération du travail numérique fournit de nouveaux cadres pour récompenser les contributions aux communautés en ligne, aux collaborations créatives et au développement de mondes virtuels d'une manière que les structures d'emploi traditionnelles ne peuvent pas accommoder.
+
+### Composabilité et interopérabilité
+
+Les NFT atteignent une composabilité complète à travers les applications et les protocoles, créant une flexibilité sans précédent dans l'utilité des actifs numériques.
+
+Un seul NFT d'objet de jeu peut fonctionner simultanément dans plusieurs jeux avec différentes mécaniques, s'afficher dans des galeries numériques et des mondes virtuels, servir de garantie dans des protocoles DeFi pour des prêts ou du yield farming, et interagir avec d'autres protocoles via des intégrations de contrats intelligents.
+
+Cette interopérabilité fonctionne sans nécessiter l'autorisation du créateur original, établissant des économies numériques véritablement ouvertes où les actifs gagnent en valeur grâce aux effets de réseau et à l'utilité multi-plateformes plutôt qu'aux restrictions spécifiques à une plateforme.
+
+<ArticleSection name="Collections" id="collections" level="h2" />
+
+Une collection représente un groupe de NFT qui partagent des attributs communs, des thèmes ou une provenance, créant des relations vérifiables sur la blockchain entre différents actifs.
+
+Puisque n'importe qui pourrait théoriquement créer un NFT et prétendre faussement appartenir à une collection prestigieuse, les collections maintiennent une autorité (généralement le créateur original ou une entité autorisée) qui peut vérifier quels NFT appartiennent légitimement à la collection.
+
+Ce processus de vérification crée un enregistrement immuable sur la blockchain stocké dans les métadonnées du NFT, établissant une appartenance authentique à la collection qui ne peut être falsifiée ou manipulée après la création.
+
+Les collections remplissent plusieurs fonctions critiques dans l'écosystème NFT. Elles permettent une découverte et une navigation efficaces des actifs connexes, fournissent une identité de marque et une cohérence thématique pour les créateurs, établissent une vérification de provenance et d'authenticité, et créent des cadres pour la gouvernance communautaire et les expériences partagées entre les détenteurs d'actifs de la collection.
+
+De plus, elles créent une façon très efficace de regrouper logiquement des tokens apparentés tout en maintenant leur unicité et leurs propriétés individuelles, rendant le contrôle d'accès pour le même type d'actifs beaucoup plus efficace et économique.
+
+<ArticleSection name="Metadata" id="metadata" level="h2" />
+
+Les métadonnées servent de couche descriptive qui transforme les tokens NFT bruts en actifs numériques significatifs.
+
+Alors que la blockchain ne stocke que les informations essentielles du token : propriété, approvisionnement et identifiants de base ; les métadonnées fournissent le contexte riche qui rend les tokens fongibles et non fongibles précieux et utilisables dans les applications.
+
+La structure des métadonnées suit généralement des standards établis pour garantir que les portefeuilles, les places de marché et les applications puissent interpréter et afficher de manière cohérente les informations NFT, quel que soit le programme qui a créé le token.
+
+Les métadonnées comprennent des éléments fondamentaux tels que le nom et la description de l'actif, qui fournissent un contexte lisible par l'humain sur ce que représente le NFT.
+
+Le champ image contient une URI pointant vers l'actif visuel, qu'il s'agisse d'art numérique, d'une photo de profil ou d'une illustration d'objet de jeu. Pour des médias plus complexes, des champs supplémentaires peuvent référencer des animations, des modèles 3D ou du contenu interactif qui donne vie au NFT dans les applications compatibles.
+
+Les attributs personnalisés étendent les métadonnées au-delà des descriptions de base, permettant des systèmes sophistiqués de classification et de filtrage. Ces attributs peuvent représenter des traits de rareté dans les objets de collection, des propriétés statistiques dans les actifs de jeu, ou des paramètres d'utilité dans les jetons fonctionnels. Le système d'attributs flexible permet aux créateurs d'intégrer toutes les données pertinentes qui améliorent la valeur ou la fonctionnalité du NFT.
+
+Certains projets stockent les métadonnées directement sur la blockchain pour une permanence maximale (avec un processus que nous appelons inscription), d'autres utilisent des solutions de stockage décentralisées comme IPFS ou Arweave pour équilibrer coût et durabilité, certains utilisent une base de données centralisée. La principale différence est que la méthode de stockage choisie impacte directement l'accessibilité à long terme du NFT et les responsabilités continues du créateur pour maintenir le contenu associé.

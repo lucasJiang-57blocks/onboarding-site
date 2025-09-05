@@ -1,0 +1,110 @@
+import { ArticleSection } from "../../../../components/ArticleSection/ArticleSection";
+
+# Signatures Winternitz sur Solana
+
+![Signatures Winternitz sur Solana](/graphics/course-banners/winternitz-signatures-on-solana.png)
+
+Contrairement aux signatures RSA ou ECDSA qui reposent sur des problèmes mathématiques comme la factorisation d'entiers ou les logarithmes discrets — tous deux vulnérables aux attaques quantiques, les signatures Winternitz tirent leur sécurité uniquement de la propriété unidirectionnelle des fonctions de hachage cryptographique.
+
+Cette différence fondamentale en fait une pierre angulaire de la cryptographie post-quantique.
+
+<ArticleSection name="What is a Winternitz Signature" id="what-is-a-winternitz-signature" level="h2" />
+
+Les signatures à usage unique de Winternitz (WOTS) ont évolué à partir des travaux révolutionnaires de Leslie Lamport dans les années 1970. Lamport a démontré qu'il était possible de créer des signatures numériques en utilisant uniquement une fonction de hachage cryptographique, sans nécessiter d'hypothèses mathématiques complexes.
+
+Le schéma original de Lamport signait un seul bit en utilisant deux valeurs secrètes. Pour signer un bit `b`, vous révélez la préimage de la valeur de hachage `H₀` (si b=0) ou `H₁` (si b=1). La sécurité reposait entièrement sur l'impossibilité computationnelle de trouver des préimages de hachage : essentiellement, remonter d'un résultat de hachage pour trouver son entrée.
+
+Cependant, les signatures de Lamport étaient extrêmement inefficaces. Signer un message `n-bit` nécessitait `2n` valeurs secrètes et produisait des signatures de `2n` valeurs. Pour un message de 256 bits, cela signifiait gérer 512 valeurs secrètes et générer des signatures de 512 valeurs.
+
+Robert Winternitz a réalisé dans les années 1990 qu'au lieu de signer des bits individuels en base 2, on pouvait signer des "chiffres" plus grands dans des bases plus élevées comme la base 16 ou la base 256. Cette innovation a considérablement réduit à la fois la taille des clés et des signatures tout en maintenant les mêmes garanties de sécurité.
+
+<ArticleSection name="Mathematical Foundations" id="mathematical-foundations" level="h2" />
+
+### Le paramètre Winternitz et la représentation en base
+
+Le paramètre crucial dans les signatures Winternitz est `w`, qui détermine comment nous regroupons les bits du message :
+- Base : `b = 2^w`
+- Plage de chiffres : Chaque chiffre représente `w` bits et peut avoir des valeurs de `0` à `2^w - 1`
+
+Choix de paramètres courants :
+- `w = 1` : Chaque position représente 1 bit (valeurs 0 ou 1), équivalent aux signatures de Lamport en base 2
+- `w = 4` : Chaque position représente 4 bits (valeurs 0-15), représentation en base 16  
+- `w = 8` : Chaque position représente 8 bits (valeurs 0-255), représentation en base 256
+
+> Des valeurs `w` plus grandes créent des signatures plus petites mais nécessitent plus de calculs pour la sécurité. Ce compromis est fondamental pour comprendre les caractéristiques de performance de WOTS.
+
+### Chaînes de hachage
+
+Les signatures Winternitz utilisent des chaînes de hachage — des séquences d'applications répétées de hachage à partir d'une valeur secrète : `H⁰(s) = s`, `H¹(s) = H(s)`, `H²(s) = H(H(s))`, ..., `Hⁱ(s) = H(H^(i-1)(s))`
+
+La propriété de sécurité est asymétrique : étant donné `Hⁱ(s)`, calculer n'importe quel `Hʲ(s)` où `j > i` est facile (il suffit de hacher `j-i` fois de plus), mais calculer n'importe quel `Hʲ(s)` où `j < i` est pratiquement impossible car cela nécessiterait d'inverser la fonction de hachage.
+
+### Mécanisme de somme de contrôle
+
+Le mécanisme de somme de contrôle empêche un type spécifique d'attaque par falsification. Sans lui, un attaquant qui voit une signature pourrait potentiellement modifier le message pour en faire un qui nécessite plus d'opérations de hachage sur certaines chaînes, puis falsifier ces composants.
+
+La somme de contrôle garantit que le « budget de hachage » total sur toutes les chaînes reste constant : si un attaquant modifie les chiffres du message vers des valeurs plus grandes (nécessitant plus de hachages), les chiffres de la somme de contrôle deviennent automatiquement plus petits (nécessitant moins de hachages dans d'autres valeurs, ce qui est impossible à falsifier sans la clé privée).
+
+### Processus de génération de clés
+
+Pour une longueur de message de `n` bits avec un paramètre Winternitz `w` :
+
+1. Calculer la longueur de signature : D'abord, déterminez combien de « morceaux » vous aurez besoin pour représenter n'importe quel message. Si vos messages font 256 bits de long et que vous choisissez un paramètre Winternitz de `w = 4`, vous aurez besoin de 64 morceaux au total : `l₁ = ⌈n/w⌉`. En utilisant la formule `l₂ = ⌊log₂(l₁ × (2^w - 1))/w⌋ + 1` nous trouvons ensuite que pour `w = 4`, où la somme de contrôle maximale est 960, `l₂ = 3` et la taille de la signature sera `l = l₁ + l₂`
+
+> Pendant la génération de clés, vous ne savez pas ce que sera la somme de contrôle car vous n'avez pas encore choisi de message à signer, mais vous avez quand même besoin de `l₂` composants de clé privée réservés pour la somme de contrôle.
+
+2. Créer des points de départ aléatoires : Générez une valeur secrète aléatoire pour chaque chaîne de hachage dont vous aurez besoin. Ces valeurs aléatoires deviennent les composants de votre clé privée. Considérez chacune comme le "point de départ" d'une chaîne de hachage distincte : `sk = (sk₁, sk₂, ..., skₗ)`
+
+3. Pour chaque composant de clé privée, appliquez la fonction de hachage de manière répétée jusqu'à ce que vous l'ayez haché le nombre maximum de fois possible (`2^w - 1`) : `pk = (H^(2^w-1)(sk₁), H^(2^w-1)(sk₂), ..., H^(2^w-1)(skₗ))`
+
+### Processus de signature
+
+Pour signer le message `M` :
+
+1. Convertir le message en représentation de base : `M → (m₁, m₂, ..., m_l₁)` où chaque `mᵢ ∈ [0, 2^w - 1]`
+
+2. Calculer la somme de contrôle : `c = Σ((2^w - 1) - mᵢ) for i = 1 to l₁` et convertir c en représentation de base : `c → (c₁, c₂, ..., c_l₂)`
+
+> Pour calculer la valeur réelle de la somme de contrôle pour ce message, nous pouvons utiliser les composants de clé privée de somme de contrôle appropriés et les hacher le bon nombre de fois en fonction des chiffres de la somme de contrôle
+
+3. Générer la signature : Où la représentation de base indique le nombre de fois que la clé privée doit être hachée.
+
+### Processus de vérification
+
+Pour vérifier la signature σ sur le message `M` avec la clé publique `pk` :
+
+1. Recalculer la représentation du message : `M → (m₁, m₂, ..., m_l₁)`
+
+2. Recalculer la somme de contrôle : `c = Σ((2^w - 1) - mᵢ) → (c₁, c₂, ..., c_l₂)`
+
+3. Pour chaque composant de signature, hacher les fois restantes :
+   - Pour les parties du message : vérifier `H^((2^w-1)-mᵢ)(σᵢ) = pkᵢ`
+   - Pour les parties de la somme de contrôle : vérifier `H^((2^w-1)-cⱼ)(σ_(l₁+j)) = pk_(l₁+j)`
+
+> Le vérificateur "continue" chaque chaîne de hachage à partir de l'endroit où le signataire s'est arrêté, atteignant le point final de la clé publique connue si la signature est valide.
+
+<ArticleSection name="Sécurité" id="security" level="h2" />
+
+### Limitation d'utilisation unique
+
+Les signatures Winternitz sont des signatures à usage unique (OTS) : elles ne peuvent être utilisées en toute sécurité qu'une seule fois par paire de clés.
+
+L'attaque fonctionne comme suit : lorsque vous signez plusieurs messages avec la même clé privée, vous révélez des valeurs intermédiaires dans vos chaînes de hachage.
+
+Le mécanisme de somme de contrôle exige que l'augmentation de certains chiffres du message (plus de hachages) soit équilibrée par la diminution des chiffres de la somme de contrôle (moins de hachages). Avec plusieurs signatures révélant des valeurs intermédiaires à différentes positions, un attaquant peut construire des contrefaçons où il utilise des positions intermédiaires plus élevées pour aller encore plus haut pour les composants du message, tout en utilisant des positions intermédiaires plus basses pour équilibrer la somme de contrôle, respectant ainsi la contrainte du budget total de hachage.
+
+### Sécurité post-quantique
+
+Les signatures Winternitz tirent leur sécurité uniquement de la résistance à la préimage des fonctions de hachage. Les ordinateurs quantiques ne peuvent pas inverser efficacement les fonctions de hachage cryptographiques comme SHA-256 ou SHA-3, contrairement aux algorithmes quantiques en temps polynomial (algorithme de Shor) qui compromettent RSA et ECDSA.
+
+L'utilisation de SHA-256 avec des paramètres appropriés offre 128 bits de sécurité post-quantique, rendant ces signatures adaptées aux applications cryptographiques à long terme, même dans un monde post-quantique.
+
+<ArticleSection name="Signatures Winternitz sur Solana" id="winternitz-on-solana" level="h2" />
+
+La fondation cryptographique actuelle de Solana repose entièrement sur les signatures Ed25519, qui sont vulnérables aux attaques quantiques via l'algorithme de Shor.
+
+Lorsque les ordinateurs quantiques deviendront pratiques, chaque portefeuille, autorité de programme et transaction sur Solana deviendra falsifiable.
+
+La migration post-quantique n'est pas quelque chose que l'on peut faire du jour au lendemain. Les systèmes doivent être conçus aujourd'hui en tenant compte de la résistance quantique, créant des approches hybrides qui fonctionnent à la fois dans les mondes pré-quantique et post-quantique.
+
+Bien que la couche de base de Solana reste vulnérable aux attaques quantiques, les développeurs peuvent construire des applications résistantes aux attaques quantiques en utilisant les signatures Winternitz.

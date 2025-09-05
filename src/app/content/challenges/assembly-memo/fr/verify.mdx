@@ -1,0 +1,30 @@
+import { ChallengeTitle } from "../../../../components/Challenges/ChallengeTitle";
+import { RequirementList } from "../../../../components/Challenges/RequirementList";
+import { Requirement } from "../../../../components/Challenges/Requirement";
+
+<ChallengeTitle>Mémo en assembleur sBPF</ChallengeTitle>
+
+Créez un programme qui n'a qu'une seule instruction. Il doit :
+- Échouer si les données d'instruction contiennent des comptes (cela peut être fait en définissant `r0` au nombre de comptes)
+- Définir `r2` à la longueur des données d'instruction, et `r1` à l'offset des données d'instruction, 
+- Invoquer l'appel système `sol_log_`.
+
+Commencez par installer le package sBPF comme expliqué dans la [section outillage](/en/courses/introduction-to-assembly/tooling) du cours Introduction à l'assembleur et compilez votre programme en utilisant la commande suivante dans votre terminal :
+
+```
+sbpf build
+```
+
+Cela générera un fichier `.so` dans votre dossier `target/deploy`.
+
+Maintenant, cliquez sur le bouton `take challenge` et déposez-y le fichier !
+
+<RequirementList>
+  <Requirement title="Défi 1 : Tester le mémo">
+    Votre programme devrait réussir et afficher `Hello, Solana!`
+  </Requirement>
+
+  <Requirement title="Défi 2 : Tester le mémo avec une entrée différente">
+    Pour s'assurer que vous n'avez pas codé en dur la chaîne `Hello, Solana!`, nous essayons à nouveau avec une autre entrée : `Hello, Solana, but different!`
+  </Requirement>
+</RequirementList>

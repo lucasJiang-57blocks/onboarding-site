@@ -1,0 +1,119 @@
+import { ArticleSection } from "../../../../components/ArticleSection/ArticleSection";
+
+# Programme Metaplex Token Metadata
+
+Le programme Metaplex Token Metadata répond à une limitation fondamentale du programme SPL-Token en permettant d'associer des données descriptives riches aux jetons fongibles et non fongibles.
+
+Bien que le programme SPL-Token gère efficacement les mécanismes de base des jetons comme la propriété et l'approvisionnement, les jetons sans métadonnées apparaissent dans les portefeuilles et les explorateurs comme des clés publiques anonymes.
+
+Metaplex transforme ces entrées blockchain basiques en actifs numériques significatifs en fournissant les informations contextuelles dont les applications et les utilisateurs ont besoin.
+
+<ArticleSection name="Metadata Account" id="metadata-account" level="h2" />
+
+Le compte `Metadata` sert de couche descriptive qui fournit contexte et utilité aux jetons blockchain. Cette structure de compte utilise le système d'adresses dérivées de programme de Solana pour créer une relation fiable entre chaque jeton et ses informations associées.
+
+La génération d'adresse déterministe garantit que chaque compte de frappe possède exactement un compte de métadonnées correspondant, établissant une propriété claire des données et évitant les conflits.
+
+Le compte `Metadata` dérive son adresse en utilisant un processus déterministe qui combine des valeurs de graines spécifiques avec la clé publique du compte de frappe :
+
+```rust
+const ID: Pubkey = solana_pubkey::pubkey!("metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s");
+
+const PREFIX: &str = "metadata";
+
+let (metadata, _) = Pubkey::find_program_address(
+    &[
+        PREFIX.as_bytes(), 
+        &ID, 
+        mint.as_ref()
+    ], 
+    &ID  
+);
+```
+
+Le compte `Metadata` stocke des informations complètes qui vont bien au-delà des identificateurs de jetons de base.
+
+Le système de vérification des créateurs maintient une liste des créateurs de jetons, chacun avec un attribut vérifié qui fournit une preuve cryptographique d'autorisation authentique du créateur. Cette vérification empêche l'usurpation d'identité et établit un suivi fiable de la provenance pour les actifs numériques.
+
+Le système intégré de redevances permet une distribution automatisée des revenus grâce aux attributs de partage assignés à chaque créateur. Les places de marché peuvent référencer ces pourcentages de manière programmatique pour distribuer les produits des ventes secondaires selon des accords prédéterminés, éliminant ainsi les calculs manuels et les dépendances de confiance.
+
+Cela crée des modèles économiques durables où les créateurs continuent à gagner de l'argent grâce à leur travail au-delà des ventes initiales.
+
+Le programme Token Metadata comble avec succès le fossé entre les données brutes de la blockchain et les actifs numériques accessibles aux utilisateurs. En enrichissant les comptes de frappe avec des informations contextuelles riches, le programme permet aux applications d'afficher, de catégoriser et d'interagir avec les jetons de manière significative.
+
+Cette couche de métadonnées fournit la base de l'écosystème diversifié d'actifs numériques qui existe aujourd'hui sur Solana.
+
+<ArticleSection name="Compte Master Edition" id="master-edition-account" level="h2" />
+
+Bien que les comptes de métadonnées servent efficacement à la fois les jetons fongibles et non fongibles, garantir des caractéristiques authentiques de NFT nécessite des mécanismes de contrôle supplémentaires.
+
+Le compte `Master Edition` répond à ce besoin en tant que PDA spécialisé qui régit la gestion des autorités de jetons. Ce compte n'est créé qu'après que le programme Token Metadata ait vérifié que les propriétés appropriées du jeton non fongible ont été établies.
+
+Le système Master Edition utilise une approche sophistiquée pour la gestion des autorités. Plutôt que de détruire définitivement l'autorité de frappe, le programme transfère à la fois les autorités de frappe et de gel au PDA Master Edition. Cette conception offre une sécurité et une fonctionnalité améliorées par rapport aux autorités définitivement annulées tout en maintenant un contrôle strict sur la création et la gestion des jetons.
+
+> Lisez [la FAQ](https://developers.metaplex.com/token-metadata/faq#why-are-the-mint-and-freeze-authorities-transferred-to-the-edition-pda) pour comprendre la raison de ce choix.
+
+Les seeds du compte `Master Edition` sont les suivantes :
+
+```rust
+const ID: Pubkey = solana_pubkey::pubkey!("metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s");
+
+const PREFIX: &str = "metadata";
+const EDITION: &str = "edition";
+
+let (master_edition, _) = Pubkey::find_program_address(
+    &[
+        PREFIX.as_bytes(), 
+        &ID, 
+        mint.as_ref()
+        EDITION.as_bytes(),
+    ], 
+    &ID  
+);
+```
+
+<ArticleSection name="NFT programmables" id="programmable-nfts" level="h2" />
+
+Les NFT programmables (pNFT) représentent une norme de jeton avancée qui impose des comportements et des restrictions personnalisables au niveau du protocole.
+
+Cette classe d'actifs répond aux limitations des NFT traditionnels en permettant aux créateurs de définir des règles de cycle de vie spécifiques qui s'exécutent automatiquement lors des interactions avec les jetons, assurant la conformité pour les créateurs sans s'appuyer sur des mécanismes d'application externes.
+
+L'architecture d'application fonctionne via un système de compte de jetons gelé. Lorsqu'un NFT devient programmable, son compte de jetons associé reste gelé en permanence, nécessitant que toutes les opérations passent par le programme Token Metadata. 
+
+Cette conception crée un point de contrôle de validation obligatoire où les règles sont vérifiées avant que toute action puisse se poursuivre, rendant impossible le contournement des restrictions définies par le créateur.
+
+Les règles définies par le créateur sont stockées dans des comptes `RuleSet` qui se connectent au compte `Token Record`, un nouveau type de compte associé au mint qui signale le statut de NFT programmable. 
+
+Le compte `Token Record` dérive son adresse en utilisant des seeds spécifiques qui le lient à la fois aux comptes mint et token :
+
+```rust
+const ID: Pubkey = solana_pubkey::pubkey!("metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s");
+
+const PREFIX: &str = "metadata";
+const TOKEN_RECORD_SEED: &str = "token_record";
+
+let (master_edition, _) = Pubkey::find_program_address(
+    &[
+        PREFIX.as_bytes(), 
+        &ID, 
+        mint.as_ref()
+        TOKEN_RECORD_SEED.as_bytes(),
+        token.as_ref(),
+    ], 
+    &ID  
+);
+```
+
+Ces `RuleSets` permettent une logique conditionnelle sophistiquée, notamment des listes d'autorisation de marchés qui respectent les paiements de redevances, des exigences de signatures multiples pour les transferts, des restrictions temporelles sur les opérations ou des flux d'approbation complexes. 
+
+Le programme [Token Auth Rules](https://developers.metaplex.com/token-auth-rules) gère ces comptes `RuleSet` et traite leur logique de validation, fournissant un cadre flexible pour implémenter des mécanismes de gouvernance personnalisés.
+
+L'interaction des développeurs avec les pNFT se fait via le programme Token Metadata plutôt que directement par le programme SPL-Token. Le programme fournit des instructions simplifiées comme `Create` et `Update` qui remplacent les opérations traditionnelles telles que `CreateMetadataAccount` et `UpdateMetadata`. 
+
+Chaque instruction nécessite un paramètre de compte `authorization_rules` qui fait référence au `RuleSet` applicable, qui peut être découvert par dérivation sur la chaîne ou via l'API de lecture Metaplex.
+
+Ce cadre programmable permet aux créateurs d'implémenter des modèles économiques nuancés et des structures de gouvernance avec une application garantie. 
+
+Qu'il s'agisse d'implémenter des transferts conditionnels, des structures de redevances dynamiques ou des exigences de propriété complexes, les pNFT garantissent que tous les comportements s'exécutent automatiquement au niveau du protocole sans dépendre de la coopération du marché ou de la conformité volontaire des utilisateurs.
+
+> Pour en savoir plus sur l'utilisation du programme `Token Metadata`, consultez la [documentation officielle](https://developers.metaplex.com/token-metadata)

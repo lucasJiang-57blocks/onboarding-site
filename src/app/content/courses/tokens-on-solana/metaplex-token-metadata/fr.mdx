@@ -1,0 +1,44 @@
+import { ArticleSection } from "../../../../components/ArticleSection/ArticleSection";
+
+# Programme Metaplex Token Metadata
+
+Imaginez lancer un jeton sur Solana, pour qu'il apparaisse dans chaque portefeuille comme une chaîne de caractères sans signification telle que "7xKXtg2CW87d97TXJSDpbD5jBkheTqA83TZRuJosgAsU". 
+
+Les utilisateurs n'auraient aucune idée de ce qu'ils détiennent, et votre projet soigneusement élaboré serait indiscernable des milliers d'autres jetons anonymes qui inondent le réseau.
+
+Le programme Metaplex Token Metadata résout ce problème critique en transformant les entrées anonymes de la blockchain en actifs numériques reconnaissables et identifiables. 
+
+Alors que le programme SPL-Token excelle dans les mécanismes techniques — suivi de la propriété, gestion de l'offre et facilitation des transferts — il laisse les jetons comme des structures de données rudimentaires sans contexte lisible par l'humain.
+
+C'est là que Metaplex fait sa magie, comblant le fossé entre la fonctionnalité brute de la blockchain et l'expérience utilisateur. Au lieu d'adresses cryptiques, les utilisateurs voient "Solana (SOL)" avec des logos familiers, des descriptions claires et toutes les informations contextuelles qui rendent les jetons réellement utilisables dans le monde réel.
+
+<ArticleSection name="Compte de métadonnées" id="metadata-account" level="h2" />
+
+Le compte `Metadata` fonctionne comme la carte d'identité numérique de votre jeton, stockant toutes les informations qui transforment une simple adresse de frappe en un actif reconnaissable. 
+
+Il ne s'agit pas seulement de jolis noms et d'images : il s'agit de créer la base de la façon dont votre jeton apparaît dans tout l'écosystème Solana.
+
+En utilisant le système d'adresses dérivées de programme de Solana, chaque jeton obtient exactement un compte de métadonnées qui est mathématiquement lié à sa frappe. Cela crée un lien incassable entre le jeton technique et ses informations descriptives, assurant la cohérence à travers toutes les applications et empêchant les conflits d'identité :
+
+```rust
+const ID: Pubkey = solana_pubkey::pubkey!("metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s");
+
+const PREFIX: &str = "metadata";
+
+let (metadata, _) = Pubkey::find_program_address(
+    &[
+        PREFIX.as_bytes(), 
+        &ID, 
+        mint.as_ref()
+    ], 
+    &ID  
+);
+```
+
+Le compte de métadonnées devient le passeport universel de votre jeton, contenant tout ce dont les applications ont besoin pour afficher correctement votre actif. 
+
+Les noms de jetons remplacent les adresses incompréhensibles, les symboles offrent une reconnaissance instantanée (pensez à "SOL" au lieu de cette longue chaîne ci-dessus), et les références URI pointent vers des médias riches comme des logos et des descriptions détaillées.
+
+Le résultat ? Votre jeton n'existe pas seulement sur la blockchain—il s'épanouit dans les portefeuilles, apparaît professionnellement dans les explorateurs et s'intègre parfaitement aux applications de l'écosystème Solana.
+
+> Pour en savoir plus sur l'utilisation du programme `Token Metadata`, consultez la [documentation officielle](https://developers.metaplex.com/token-metadata)

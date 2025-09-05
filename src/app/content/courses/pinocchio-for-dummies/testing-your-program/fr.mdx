@@ -1,0 +1,32 @@
+import { ArticleSection } from "../../../../components/ArticleSection/ArticleSection";
+
+# Tester votre programme  
+
+Des tests approfondis sont essentiels avant le déploiement sur le réseau principal pour identifier les bugs potentiels et les vulnérabilités. 
+
+Des programmes bien testés évitent les pertes financières, renforcent la confiance des utilisateurs et garantissent que les applications se comportent correctement dans diverses conditions.
+
+<ArticleSection name="Tests Mollusk" id="mollusk-tests" level="h2" />
+
+Lorsque la mise en place d'états de programme complexes ou la nécessité d'interactions précises sur la chaîne s'avère difficile, Mollusk offre un contrôle plus précis de l'environnement de test.
+
+Mollusk est un framework de test Rust conçu spécifiquement pour les programmes Solana qui vous permet de :
+- Tester la logique du programme de manière isolée sans surcharge réseau
+- Configurer facilement des états de compte complexes et des conditions de programme
+- Exécuter des tests plus rapidement que des tests d'intégration complets
+- Simuler des conditions spécifiques de blockchain et des cas limites
+
+Nous avons couvert les tests Mollusk en détail [ici](/en/courses/testing-with-mollusk).
+
+Pour tester votre programme pinocchio, importez simplement votre fichier `test.rs` avec le drapeau de configuration `test` dans votre `lib.rs` :
+
+```rust
+#[cfg(test)]
+pub mod tests;
+```
+
+Exécutez vos tests en utilisant :
+
+```
+cargo test-sbf
+```

@@ -1,0 +1,99 @@
+import ArticleSection from "../../../../components/ArticleSection/ArticleSection";
+
+# Délai d'expiration d'assemblage
+
+![Défi de délai d'expiration d'assemblage](/graphics/challenge-banners/assembly-timeout.png)
+
+Dans cette unité, nous utiliserons l'assemblage sBPF pour créer une instruction de validation basée sur le temps qui impose des délais de hauteur de slot.
+
+En incluant cette instruction dans votre transaction, vous créez un mécanisme de sécurité qui empêche l'exécution après un temps blockchain spécifié, protégeant ainsi contre l'exécution retardée de transactions ou les rejeux d'instructions obsolètes.
+
+Plusieurs propriétés rendent les vérifications de délai idéales pour l'assemblage :
+- Cas d'utilisation unique et contraint
+- Utilisation efficace des variables système
+- Aucune validation complexe de compte requise
+- Améliore uniquement la sécurité des transactions
+
+Si vous n'êtes pas familier avec la programmation en assemblage, suivez le [cours d'introduction à l'assemblage](/en/courses/introduction-to-assembly)
+
+<ArticleSection name="Conception du programme" id="program-design" level="h2" />
+
+Notre programme implémente une opération temporelle cruciale : valider que la hauteur actuelle du slot de la blockchain n'a pas dépassé une échéance prédéterminée. Ce modèle est essentiel pour les opérations DeFi sensibles au temps — de la prévention des tentatives d'arbitrage obsolètes à l'application des délais d'enchères.
+
+Le programme attend :
+- Une hauteur maximale de slot de 8 octets dans les données d'instruction.
+- Accès à la sysvar Clock de Solana via `sol_get_clock_sysvar`.
+- Retourne un succès si le slot actuel ≤ slot max, une erreur dans le cas contraire.
+
+<ArticleSection name="Décalages mémoire" id="memory-offsets" level="h2" />
+
+Les programmes sBPF reçoivent les données de compte sous forme de régions mémoire contiguës. Ces constantes définissent les décalages d'octets dans cette mémoire.
+
+Comme notre programme n'accepte aucun compte, nous pouvons calculer où `MAX_SLOT_HEIGHT` (transmis comme données d'instruction) sera situé. Nous stockerons également les données de la sysvar `Clock` sur la pile, c'est pourquoi le `CURRENT_SLOT_HEIGHT` sera négatif.
+
+Ces constantes définissent notre disposition mémoire :
+
+```sbpf
+.equ NUM_ACCOUNTS, 0x0000
+.equ MAX_SLOT_HEIGHT, 0x0010
+.equ CURRENT_SLOT_HEIGHT, -0x0028
+```
+
+- `NUM_ACCOUNTS` (0x0000) : Pointe vers le nombre de comptes dans l'en-tête des données d'instruction pour validation
+- `MAX_SLOT_HEIGHT` (0x0010) : Localise la hauteur de slot d'échéance de 8 octets dans la charge utile des données d'instruction
+- `CURRENT_SLOT_HEIGHT` (-0x0028) : Décalage de pile où le champ slot de la sysvar Clock sera stocké. Comme slot est le premier champ dans la structure Clock, ce décalage y pointe directement
+
+Contrairement aux langages de haut niveau qui abstraient la disposition de la mémoire, l'assembleur nécessite de savoir exactement où se trouve chaque élément de données.
+
+<ArticleSection name="Point d'entrée et validation initiale" id="entrypoint-and-validations" level="h2" />
+
+```sbpf
+.globl entrypoint
+entrypoint:
+  ldxdw r0, [r1+NUM_ACCOUNTS]       // Veto if any accounts are included
+  ldxdw r2, [r1+MAX_SLOT_HEIGHT]    // Store target slot height
+```
+
+Chaque programme sBPF commence par un symbole global `.entrypoint`. L'environnement d'exécution Solana fournit les données de compte et d'instruction via le registre `r1`.
+
+L'instruction `ldxdw` charge (`ldx`) une valeur de 8 octets (double mot, `dx`) depuis la mémoire vers un registre. Voici ce qui se passe :
+- `ldxdw r0, [r1+NUM_ACCOUNTS]` : charge le nombre de comptes dans `r0`. Comme `r0` est le registre que la VM lit à la sortie, toute valeur non nulle fait automatiquement échouer le programme (exactement ce que nous voulons si des comptes sont transmis).
+- `ldxdw r2, [r1+MAX_SLOT_HEIGHT]` : pointe vers la hauteur maximale de slot autorisée que nous avons passée dans les données d'instruction. Cette valeur de 64 bits arrive dans `r2`.
+
+Les deux opérations sont sans copie : nous lisons directement à partir des données du compte sans surcharge de désérialisation.
+
+<ArticleSection name="La Sysvar Clock" id="the-clock-sysvar" level="h2" />
+
+```sbpf
+mov64 r1, r10
+add64 r1, CURRENT_SLOT_HEIGHT
+call sol_get_clock_sysvar
+ldxdw r1, [r1+0x0000]
+```
+
+L'appel système `sol_get_clock_sysvar` écrit les données actuelles de `Clock` dans `r1`. 
+
+Comme la structure Clock fait 40 octets (trop grande pour les registres qui ne contiennent que 8 octets chacun), nous utilisons la pile pour un stockage rapide sans allocation avec nettoyage automatique.
+
+Comme `r10` est en lecture seule, pour opérer sur la pile, nous devons copier son adresse mémoire dans un registre : `mov64 r1, r10`
+
+Ensuite, nous ajoutons `CURRENT_SLOT_HEIGHT` (-0x0028) à `r1`. Comme cette constante est négative, il s'agit en fait d'une soustraction : `r1 = r10 - 40 bytes`, allouant 40 octets sur la pile.
+
+Après avoir appelé la fonction `sol_get_clock_sysvar`, `r1` contient l'adresse mémoire où les données Clock ont été écrites, et non la valeur du slot elle-même. Pour cette raison, nous procédons au chargement de la valeur réelle du slot en utilisant `ldxdw r1, [r1+0x0000]`.
+
+<ArticleSection name="Logique de comparaison temporelle" id="temporal-comparison-logic" level="h2" />
+
+```sbpf
+jle r1, r2, end    // If current slot <= max slot, success
+lddw r0, 1         // Otherwise, set error code
+```
+
+La logique de temporisation principale utilise un seul saut conditionnel :
+- Validation temporelle : `jle` (saut si inférieur ou égal) compare le slot actuel (`r1`) à notre date limite (`r2`). Si nous sommes dans la fenêtre temporelle, saut vers `exit`
+- Gestion du délai d'attente : Si la date limite est dépassée, l'exécution continue pour charger (`lddw`) le code d'erreur 1 dans le registre de retour `r0`
+
+<ArticleSection name="Conclusion" id="conclusion" level="h2" />
+
+Ce programme compact réalise une validation temporelle avec une consommation minimale d'unités de calcul.
+
+Le compromis réside dans la compréhension des interfaces syscall, la gestion de la pile et la disposition binaire de la sysvar `Clock`. Mais pour les validations temporelles critiques en termes de performance, l'assembleur offre une efficacité inégalée.
