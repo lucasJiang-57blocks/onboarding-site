@@ -23,6 +23,7 @@ Les comptes nécessaires dans ce contexte sont :
 Et avec toutes les contraintes, cela ressemblera à quelque chose comme ceci :
 
 ```rust
+#[derive(Accounts)]
 #[instruction(seed: u64)]
 pub struct Make<'info> {
     #[account(mut)]
