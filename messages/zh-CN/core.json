@@ -118,7 +118,7 @@
     "connect_wallet_description": "完成挑战和解锁 NFT 需要 Solana 钱包",
     "back_to_lessons": "返回课程",
     "back_to_homepage": "返回首页",
-    "head_to_challenges": "返回挑战", 
+    "head_to_challenges": "返回挑战",
     "requirements_title": "挑战",
     "upload_program_btn": "上传程序",
     "run_program_btn": "执行",
@@ -147,7 +147,7 @@
     "mint_modal_skip_description": "你可以在挑战页面看到你的解锁内容。",
     "mint_modal_tweet": "在 X 上分享",
     "share_on_x": "在 X 上分享",
-    "challenge_share_tweet": "I just completed the {challengeTitle} challenge from @blueshift_gg.\n\nTry it out here: {challengeUrl}\n\nMake the shift. Build on @solana.",
+    "challenge_share_tweet": "I just completed the {challengeTitle} challenge from @blueshift.\n\nTry it out here: {challengeUrl}\n\nMake the shift. Build on @solana.",
     "assistance_prompt": {
       "title": "需要帮助吗？",
       "body": "看起来你遇到了一些困难。如果你卡住了，请随时在我们的 Discord 社区寻求帮助。",

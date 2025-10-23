@@ -114,7 +114,7 @@
     "connect_wallet_description": "Для виконання завдання та розблокування NFT потрібен гаманець Solana",
     "back_to_lessons": "Назад до уроків",
     "back_to_homepage": "Назад на головну",
-    "head_to_challenges": "Назад до завдань", 
+    "head_to_challenges": "Назад до завдань",
     "requirements_title": "Завдання",
     "upload_program_btn": "Завантажити програму",
     "run_program_btn": "Виконати",
@@ -143,7 +143,7 @@
     "mint_modal_skip_description": "Ви можете побачити свої розблоковані нагороди на сторінці Завдань.",
     "mint_modal_tweet": "Поділитися в X",
     "share_on_x": "Поділитися в X",
-    "challenge_share_tweet": "Я щойно виконав завдання {challengeTitle} від @blueshift_gg.\n\nСпробуйте тут: {challengeUrl}\n\nЗробіть зміну. Будуйте на @solana.",
+    "challenge_share_tweet": "Я щойно виконав завдання {challengeTitle} від @blueshift.\n\nСпробуйте тут: {challengeUrl}\n\nЗробіть зміну. Будуйте на @solana.",
     "assistance_prompt": {
       "title": "Потрібна допомога?",
       "body": "Схоже, у вас виникли труднощі. Якщо ви застрягли, не соромтеся просити допомоги в нашій спільноті Discord.",

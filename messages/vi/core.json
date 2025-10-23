@@ -143,7 +143,7 @@
     "mint_modal_skip_description": "Bạn có thể xem các mở khóa trên trang Thử thách.",
     "mint_modal_tweet": "Chia sẻ trên X",
     "share_on_x": "Chia sẻ trên X",
-    "challenge_share_tweet": "I just completed the {challengeTitle} challenge from @blueshift_gg.\n\nTry it out here: {challengeUrl}\n\nMake the shift. Build on @solana.",
+    "challenge_share_tweet": "I just completed the {challengeTitle} challenge from @blueshift.\n\nTry it out here: {challengeUrl}\n\nMake the shift. Build on @solana.",
     "assistance_prompt": {
       "title": "Cần trợ giúp?",
       "body": "Có vẻ như bạn đang gặp khó khăn. Nếu bạn bị kẹt, hãy thoải mái yêu cầu trợ giúp trong cộng đồng Discord của chúng tôi.",

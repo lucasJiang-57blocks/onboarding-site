@@ -142,7 +142,7 @@
     "mint_modal_skip_description": "Anda dapat melihat semua hadiah Anda di halaman Tantangan.",
     "mint_modal_tweet": "Bagikan di X",
     "share_on_x": "Bagikan di X",
-    "challenge_share_tweet": "I just completed the {challengeTitle} challenge from @blueshift_gg.\n\nTry it out here: {challengeUrl}\n\nMake the shift. Build on @solana.",
+    "challenge_share_tweet": "I just completed the {challengeTitle} challenge from @blueshift.\n\nTry it out here: {challengeUrl}\n\nMake the shift. Build on @solana.",
     "assistance_prompt": {
       "title": "Butuh Bantuan?",
       "body": "Tantangan ini cukup sulit! Jika Anda mengalami kesulitan, jangan ragu untuk bertanya kepada komunitas Discord kami.",

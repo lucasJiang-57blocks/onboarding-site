@@ -114,7 +114,7 @@
     "connect_wallet_description": "A Solana wallet is required to complete the challenge and unlock NFTs",
     "back_to_lessons": "Back to Lessons",
     "back_to_homepage": "Back to Homepage",
-    "head_to_challenges": "Back to Challenges", 
+    "head_to_challenges": "Back to Challenges",
     "requirements_title": "Challenge",
     "upload_program_btn": "Upload Program",
     "run_program_btn": "Execute",
@@ -143,7 +143,7 @@
     "mint_modal_skip_description": "You can see your unlocks on the Challenges page.",
     "mint_modal_tweet": "Share on X",
     "share_on_x": "Share on X",
-    "challenge_share_tweet": "I just completed the {challengeTitle} challenge from @blueshift_gg.\n\nTry it out here: {challengeUrl}\n\nMake the shift. Build on @solana.",
+    "challenge_share_tweet": "I just completed the {challengeTitle} challenge from @blueshift.\n\nTry it out here: {challengeUrl}\n\nMake the shift. Build on @solana.",
     "assistance_prompt": {
       "title": "Need some help?",
       "body": "It looks like you're having some trouble. If you're stuck, feel free to ask for help in our Discord community.",

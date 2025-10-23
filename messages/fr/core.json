@@ -113,7 +113,7 @@
     "connect_wallet_description": "Un portefeuille Solana est nécessaire pour relever le challenge et débloquer les NFT.",
     "back_to_lessons": "Retour aux Leçons",
     "back_to_homepage": "Retour à la Page d'Accueil",
-    "head_to_challenges": "Retour aux Challenges", 
+    "head_to_challenges": "Retour aux Challenges",
     "requirements_title": "Challenge",
     "upload_program_btn": "Upload un Programme",
     "run_program_btn": "Exécuter",
@@ -142,7 +142,7 @@
     "mint_modal_skip_description": "Vous pouvez voir vos déblocages sur la page des Challenges.",
     "mint_modal_tweet": "Partager sur X",
     "share_on_x": "Partager sur X",
-    "challenge_share_tweet": "I just completed the {challengeTitle} challenge from @blueshift_gg.\n\nTry it out here: {challengeUrl}\n\nMake the shift. Build on @solana.",
+    "challenge_share_tweet": "I just completed the {challengeTitle} challenge from @blueshift.\n\nTry it out here: {challengeUrl}\n\nMake the shift. Build on @solana.",
     "assistance_prompt": {
       "title": "Besoin d'aide ?",
       "body": "On dirait que vous rencontrez des difficultés. Si vous êtes bloqué, n'hésitez pas à demander de l'aide à notre communauté Discord.",
