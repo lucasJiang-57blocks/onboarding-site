@@ -1,6 +1,6 @@
 import { ChallengeMetadata } from "@/app/utils/challenges";
 
-const allChallenges: ChallengeMetadata[] = [
+export const challenges: ChallengeMetadata[] = [
   {
     slug: "anchor-vault",
     language: "Anchor",
@@ -211,26 +211,3 @@ const allChallenges: ChallengeMetadata[] = [
     collectionMintAddress: "HEZn1PnhPBejGJQS7wtNAeBv73ExhqDhxYMxdRs8AM8W",
   },
 ];
-
-const releasedChallengesSetting =
-  process.env.NEXT_PUBLIC_RELEASED_CHALLENGES?.trim();
-
-export const challenges = allChallenges.filter((challenge) => {
-  // If the setting is undefined, null, or an empty string, release no challenges.
-  if (!releasedChallengesSetting) {
-    return false;
-  }
-
-  // If the setting is "*", release all challenges.
-  if (releasedChallengesSetting === "*") {
-    return true;
-  }
-
-  // Otherwise, treat the setting as a comma-separated list of challenge slugs.
-  const releasedSlugs = releasedChallengesSetting
-    .split(",")
-    .map((slug) => slug.trim())
-    .filter((slug) => slug.length > 0); // Ensure empty strings from trailing/multiple commas are ignored
-
-  return releasedSlugs.includes(challenge.slug);
-});
