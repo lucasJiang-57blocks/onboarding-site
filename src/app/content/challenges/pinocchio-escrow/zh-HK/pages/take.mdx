@@ -148,7 +148,7 @@ impl<'a> Take<'a> {
     ];
     let signer = Signer::from(&escrow_seeds);
     
-    let amount = TokenAccount::get_amount(self.accounts.vault);
+    let amount = TokenAccount::from_account_info(self.accounts.vault)?.amount();
     
     // Transfer from the Vault to the Taker
     Transfer {
