@@ -32,6 +32,7 @@ type CourseCardProps = {
   completedLessonsCount?: number;
   totalLessonCount?: number;
   courseSlug?: string;
+  description?: string;
 };
 
 export default function CourseCard({
@@ -44,6 +45,7 @@ export default function CourseCard({
   completedLessonsCount,
   totalLessonCount,
   courseSlug,
+  description,
 }: CourseCardProps) {
   const cardRef = useRef<HTMLDivElement>(null);
   const [hasHovered, setHasHovered] = useState(false);
@@ -186,8 +188,7 @@ export default function CourseCard({
                 className="overflow-hidden"
               >
                 <span className="text-balance flex leading-[150%] flex-wrap items-center gap-x-3 text-sm text-shade-tertiary">
-                  To understand sBPF Assembly and its role in Solana programs,
-                  we first need to understand assembly.
+                  {description || ""}
                 </span>
               </motion.div>
             )}

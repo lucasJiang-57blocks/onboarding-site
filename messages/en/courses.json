@@ -2,6 +2,7 @@
   "courses": {
     "introduction-to-blockchain-and-solana": {
       "title": "Introduction to Blockchain and Solana",
+      "description": "Discover the fundamentals of blockchain technology and explore how Solana revolutionizes decentralized computing with high-speed, low-cost transactions.",
       "lessons": {
         "introduction": "Introduction",
         "blockchain-fundamentals": "Blockchain Fundamentals",
@@ -12,6 +13,7 @@
     },
     "anchor-for-dummies": {
       "title": "Anchor for Dummies",
+      "description": "Master Anchor, the powerful Rust framework for Solana development, from basic setup to advanced patterns and deployment.",
       "lessons": {
         "anchor-101": "Anchor 101",
         "anchor-accounts": "Anchor Accounts", 
@@ -25,6 +27,7 @@
     },
     "pinocchio-for-dummies": {
       "title": "Pinocchio for Dummies",
+      "description": "Learn Pinocchio, the lightweight and high-performance framework for building efficient Solana programs with minimal overhead.",
       "lessons": {
         "pinocchio-101": "Pinocchio 101",
         "pinocchio-accounts": "Pinocchio Accounts",
@@ -40,6 +43,7 @@
     },
     "introduction-to-assembly": {
       "title": "Introduction to Assembly",
+      "description": "Understand sBPF Assembly and its role in Solana programs. Learn how low-level instructions drive blockchain execution.",
       "lessons": {
         "assembly-101": "Assembly 101",
         "registers-and-memory": "Registers and Memory",
@@ -51,6 +55,7 @@
     },
     "program-security": {
       "title": "Program Security",
+      "description": "Protect your Solana programs from common vulnerabilities and attacks with essential security best practices and patterns.",
       "lessons": {
         "introduction": "Introduction",
         "signer-checks": "Signer Checks",
@@ -67,6 +72,7 @@
     },
     "secp256r1-on-solana": {
       "title": "Secp256r1 on Solana",
+      "description": "Implement Secp256r1 cryptographic signatures on Solana using both Anchor and Pinocchio frameworks.",
       "lessons": {
         "introduction": "Secp256r1 on Solana",
         "secp256r1-with-anchor": "Secp256r1 with Anchor",
@@ -76,6 +82,7 @@
     },
     "tokens-on-solana": {
       "title": "Tokens on Solana",
+      "description": "Explore Solana's token standards, mint and token accounts, and learn to work with the SPL Token program.",
       "lessons": {
         "introduction": "Introduction",
         "mint-and-token-accounts": "Mint and Token Accounts",
@@ -86,6 +93,7 @@
     },
     "nfts-on-solana": {
       "title": "NFTs on Solana",
+      "description": "Create and manage NFTs on Solana using Metaplex Token Metadata and Metaplex Core standards.",
       "lessons": {
         "introduction": "Introduction",
         "metaplex-token-metadata": "Metaplex Token Metadata",
@@ -95,6 +103,7 @@
     },
     "spl-token-with-web3js": {
       "title": "SPL Token with Web3.js",
+      "description": "Master SPL Token operations with TypeScript and Web3.js, from minting to managing token authorities.",
       "lessons": {
         "introduction": "Introduction",
         "mint-to": "Mint To",
@@ -109,6 +118,7 @@
     },
     "spl-token-with-anchor": {
       "title": "SPL Token with Anchor",
+      "description": "Build robust token programs with Anchor framework, implementing all essential SPL Token functionalities.",
       "lessons": {
         "introduction": "Introduction",
         "mint-to": "Mint To",
@@ -123,6 +133,7 @@
     },
     "token-2022-program": {
       "title": "Token2022 Program",
+      "description": "Discover Token Extensions, the next evolution of tokens on Solana with powerful new features and capabilities.",
       "lessons": {
         "introduction": "Introduction",
         "token-extensions": "Token Extensions",
@@ -131,6 +142,7 @@
     },
     "token-2022-with-web3js": {
       "title": "Token2022 with Web3.js",
+      "description": "Implement Token-2022 extensions with TypeScript, including transfer fees, metadata, and advanced token features.",
       "lessons": {
         "introduction": "Introduction",
         "transfer-fee-extension": "Transfer Fee Extension",
@@ -149,6 +161,7 @@
     },
     "token-2022-with-anchor": {
       "title": "Token2022 with Anchor",
+      "description": "Build advanced Token-2022 programs with Anchor, leveraging all extensions for maximum functionality.",
       "lessons": {
         "introduction": "Introduction",
         "transfer-fee-extension": "Transfer Fee Extension",
@@ -167,6 +180,7 @@
     },
     "instruction-introspection": {
       "title": "Instruction Introspection",
+      "description": "Learn to inspect and analyze instructions within your Solana programs using Anchor and Pinocchio.",
       "lessons": {
         "introduction": "Introduction",
         "introspection-with-anchor": "Introspection with Anchor",
@@ -176,6 +190,7 @@
     },
     "testing-with-mollusk": {
       "title": "Testing with Mollusk",
+      "description": "Write comprehensive tests for your Solana programs using Mollusk's powerful testing framework.",
       "lessons": {
         "mollusk-101": "Mollusk 101",
         "advanced-functionalities": "Advanced Functionalities",
@@ -184,6 +199,7 @@
     },
     "solana-pay": {
       "title": "Solana Pay",
+      "description": "Build payment solutions with Solana Pay, enabling seamless transfer and transaction requests.",
       "lessons": {
         "introduction": "Introduction",
         "transfer-request": "Transfer Request",
@@ -193,6 +209,7 @@
     },
     "create-your-sdk-with-codama": {
       "title": "Create your SDK with Codama",
+      "description": "Generate type-safe SDKs for your Solana programs using Codama's IDL-based code generation.",
       "lessons": {
         "introduction": "Introduction",
         "codama-from-scratch": "Codama IDL from Scratch",
@@ -203,6 +220,7 @@
     },
     "winternitz-signatures-on-solana": {
       "title": "Winternitz Signatures on Solana",
+      "description": "Implement quantum-resistant Winternitz signatures on Solana with Anchor and Pinocchio.",
       "lessons": {
         "introduction": "Introduction",
         "winternitz-signatures-with-anchor": "Winternitz Signatures with Anchor",
@@ -212,6 +230,7 @@
     },
     "testing-with-litesvm": {
       "title": "Testing with LiteSVM",
+      "description": "Accelerate your testing workflow with LiteSVM, supporting both TypeScript and Rust environments.",
       "lessons": {
         "litesvm-101": "LiteSVM 101",
         "typescript": "LiteSVM with Typescript",
@@ -221,6 +240,7 @@
     },
     "testing-with-surfpool": {
       "title": "Testing with Surfpool",
+      "description": "Master Surfpool's advanced testing capabilities for robust and reliable Solana program validation.",
       "lessons": {
         "surfpool-101": "Surfpool 101",
         "advanced-functionalities": "Advanced Functionalities",

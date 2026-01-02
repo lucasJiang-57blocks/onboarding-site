@@ -377,6 +377,7 @@ export default function CourseList({
                       completedLessonsCount={completedLessonsCount}
                       totalLessonCount={totalLessons}
                       courseSlug={course.slug}
+                      description={t(`courses.${course.slug}.description`)}
                     />
                   );
                 })}
@@ -479,6 +480,7 @@ export default function CourseList({
                     completedLessonsCount={completedLessonsCount}
                     totalLessonCount={totalLessons}
                     courseSlug={course.slug}
+                    description={t(`courses.${course.slug}.description`)}
                   />
                 );
               })}

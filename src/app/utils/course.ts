@@ -29,6 +29,7 @@ export type CourseMetadata = {
   isFeatured: boolean;
   lessons: LessonMetadata[];
   challenge?: ChallengeSlug;
+  description?: string;
 };
 
 export type LessonMetadata = {
