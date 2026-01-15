@@ -76,13 +76,13 @@ export default function HeaderContent() {
             <div className="flex gap-x-8 xl:gap-x-12 items-center">
               <Link
                 href="/"
-                className="sm:hidden flex overflow-hidden w-[25px]"
+                className="sm:hidden flex overflow-hidden"
               >
-                <Logo hideText height={18} />
+                <p className="text-2xl font-bold text-white">57Blocks</p>
               </Link>
 
               <Link href="/" className="hidden sm:flex">
-                <Logo height={18} />
+                <p className="text-2xl font-bold text-white">57Blocks</p>
               </Link>
 
               <Tabs
@@ -107,13 +107,6 @@ export default function HeaderContent() {
                     icon: { name: "Challenge", size: 18 },
                     selected: isChallenges,
                     onClick: () => router.push("/challenges"),
-                  },
-                  {
-                    label: t("header.perks"),
-                    value: "perks",
-                    icon: { name: "Perks", size: 18 },
-                    selected: pathname === "/perks",
-                    onClick: () => router.push("/perks"),
                   },
                 ]}
                 variant="tab"

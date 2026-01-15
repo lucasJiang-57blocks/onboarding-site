@@ -14,6 +14,7 @@ export const courses: CourseMetadata[] = withCourseNumber([
       { slug: "blockchain-evolution" },
       { slug: "introduction-to-solana" },
       { slug: "conclusion" },
+      { slug: "test-test" },
     ],
   },
   {

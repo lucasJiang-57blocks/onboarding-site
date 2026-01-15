@@ -410,3 +410,7 @@ pre.shiki {
   @apply my-0 py-0;
   background-color: transparent !important;
 }
+
+button {
+  cursor: pointer;
+}
