@@ -1,11 +1,15 @@
 main = ".open-next/worker.js"
-name = "blueshift-dashboard"
+name = "57blocks-onboarding-site"
 compatibility_date = "2025-09-01"
 compatibility_flags = ["nodejs_compat"]
 
-routes = [
-    { pattern = "learn.blueshift.gg", custom_domain = true }
-]
+# 如果使用自定义域名，取消下面的注释并修改为你的域名
+# routes = [
+#     { pattern = "your-domain.com", custom_domain = true }
+# ]
+
+# 如果不使用自定义域名，使用 workers.dev 子域名，取消下面的注释
+workers_dev = true
 
 [vars]
 CONTENT_PREFIX = "compiled-mdx"
@@ -19,10 +23,10 @@ binding = "ASSETS"
 
 [[r2_buckets]]
 binding = 'CONTENT'
-bucket_name = 'blueshift-edu-content'
+bucket_name = '57blocks-onboarding-web3'
 
 [env.preview]
-name = "blueshift-dashboard-preview"
+name = "57blocks-onboarding-site-preview"
 workers_dev = true
 routes = []
 
