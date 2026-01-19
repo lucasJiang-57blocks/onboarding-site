@@ -67,7 +67,7 @@ export const paths: PathMetadata[] = [
     ],
   },
   {
-    slug: "typescript-dApp-developer",
+    slug: "typescript-client-developer",
     language: "Typescript",
     color: BRAND_COLOURS.typescript,
     difficulty: 1,
