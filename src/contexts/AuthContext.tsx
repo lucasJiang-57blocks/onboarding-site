@@ -8,6 +8,7 @@ import {
   ReactNode,
   useReducer,
 } from "react";
+import { SignJWT } from "jose";
 import { useWallet } from "@solana/wallet-adapter-react";
 import { useWalletModal } from "@solana/wallet-adapter-react-ui";
 import { usePersistentStore } from "@/stores/store";
@@ -164,14 +165,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   );
 
   const signInMutation = useMutation<AuthResponse, Error>({
-    mutationFn: () => {
+    mutationFn: async () => {
       if (!publicKey || !currentPublicKey || !signMessage) {
         throw new WalletDisconnectError();
       }
-      return performSignIn(
-        currentPublicKey,
-        signMessage as (message: Uint8Array) => Promise<Uint8Array>,
-      );
+      // return performSignIn(
+      //   currentPublicKey,
+      //   signMessage as (message: Uint8Array) => Promise<Uint8Array>,
+      // );
+      
+      // 模拟生成 JWT token
+      const secret = new TextEncoder().encode("mock-secret-key-for-development");
+      const token = await new SignJWT({
+        sub: currentPublicKey, // 用户公钥作为 subject
+      })
+        .setProtectedHeader({ alg: "HS256" })
+        .setExpirationTime("24h") // 24小时后过期
+        .setIssuedAt()
+        .sign(secret);
+
+      return Promise.resolve({ token });
     },
     onMutate: () => dispatch({ type: "SIGN_IN_STARTED" }),
     onSuccess: (data) => {
