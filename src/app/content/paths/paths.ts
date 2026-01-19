@@ -13,6 +13,7 @@ export const paths: PathMetadata[] = [
       { type: "course", slug: "introduction-to-blockchain-and-solana" },
       { type: "course", slug: "introduction-to-ethereum" },
       { type: "course", slug: "flip-coins-on-evm" },
+      { type: "course", slug: "anchor-for-dummies" },
       { type: "challenge", slug: "anchor-flip-coins" },
       { type: "course", slug: "introduction-to-uniswap" },
       { type: "challenge", slug: "anchor-uniswap-v2" },
@@ -66,7 +67,7 @@ export const paths: PathMetadata[] = [
     ],
   },
   {
-    slug: "typescript-client-developer",
+    slug: "typescript-dApp-developer",
     language: "Typescript",
     color: BRAND_COLOURS.typescript,
     difficulty: 1,
