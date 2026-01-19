@@ -1,0 +1,801 @@
+## How to write a smart contract on Base
+
+There are a number of powerful tools that enable you to write, test, and deploy smart contracts. We’ll be using [Ethereum Remix](https://remix.ethereum.org/), a web-based integrated development environment (IDE).
+
+Before we deep dive into the contract, let's identify the license and declare the version of Solidity we’d like to use:
+
+``` solidity
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.27;
+```
+
+Next, we can initialize the contract. We declare the EtherCoinFlip contract and all the Solidity code inside this contract will be inside these brackets.
+
+``` solidity
+contract EtherCoinFlip {
+
+}
+```
+
+To establish the basic structure of the game with all the necessary components, we can define a struct named `EtherCoinFlipStruct`. This struct will represent the details of each coin flip and will be mapped to a unique coin flip ID. The struct should contain the following information:
+
+- The public key addresses of both players
+- The wager amount
+- The total amount of Ether involved
+- The addresses of the winner and the loser
+- A bool representing if the coin flip is active or not
+
+``` solidity
+struct EtherCoinFlipStruct {
+
+uint256 ID;
+
+address payable betStarter;
+
+uint256 startingWager;
+
+address payable betEnder;
+
+uint256 endingWager;
+
+uint256 etherTotal;
+
+address payable winner;
+
+address payable loser;
+
+bool isActive;
+
+}
+```
+
+We can initialize a `uint256` variable for the number of coin flips. For the sake of clarity, we can call it `numberOfCoinFlips` and set it to 1 to keep track of the total number of coin flips that have happened.
+
+``` solidity
+uint256 numberOfCoinFlips = 1;
+```
+
+Next, we can create a mapping to link every coin flip ID to its corresponding `EtherCoinFlipStruct`. This way, a coin flip ID will be associated with all the correct details.
+
+``` solidity
+mapping(uint256 => EtherCoinFlipStruct) public EtherCoinFlipStructs;
+```
+
+Now before we start writing the main functions that will power Ether Coin Flip, we first need to create [events](https://docs.soliditylang.org/en/latest/contracts.html#events) that emit the necessary data. These events will be important later on when we build a subgraph on The Graph. If you’re unfamiliar with the difference between events & functions, you can read [this blog](https://levelup.gitconnected.com/events-vs-functions-in-solidity-3d6e797f349e).
+
+We can declare two events: StartedCoinFlip and FinishedCoinFlip. These events will emit information about the coin flip when the respective function finishes. We’ll make sure that only the most important information is being emitted. For the StartedCoinFlip event, we can emit the following:
+
+- The coin flip ID
+- Who started the coin flip
+- The wager
+- Whether it is active or not
+
+We can write the StartedCoinFlip event like this:
+
+``` solidity
+event StartedCoinFlip(uint256 indexed theCoinFlipID, address indexed theBetStarter, uint256 theStartingWager, bool isActive);
+```
+
+Next, we’ll need the FinishedCoinFlip event, which will emit the following:
+
+- The coin flip ID
+- The winner of the coin flip
+- The loser
+- The coin flip’s activity status (which will now be set to false)
+
+We can write the `FinishedCoinFlip` like this:
+
+``` solidity
+event FinishedCoinFlip(uint256 indexed theCoinFlipID, address indexed winner, address indexed loser, bool isActive);
+```
+
+Now that we've set up the basic structure of our EtherCoinFlip contract, it's time to implement the core functionality that will allow players to start and end coin flips. We'll create three main functions:
+
+- `newCoinFlip()` - Allows a player to start a new coin flip.
+- `endCoinFlip()` - Allows another player to end a coin flip. The smart contract determines the winner and distributes the total Ether to them.
+- `getActiveCoinFlips()` - Returns a list of all active coin flips.
+
+Let's explore each of these functions, understand how they work, and clarify the Solidity code involved!
+
+### Starting a Coin Flip
+
+The `newCoinFlip()` function allows a player to start a new coin flip by sending Ether to the contract. Here's how it's defined:
+
+``` solidity
+    function newCoinFlip() public payable returns (uint256 coinFlipID) {
+
+        address payable player1 = payable(msg.sender);
+
+        coinFlipID = numberOfCoinFlips++;
+
+        EtherCoinFlipStructs\[coinFlipID\] = EtherCoinFlipStruct(
+
+            coinFlipID,
+
+            player1,
+
+            msg.value,
+
+            payable(address(0)),
+
+            0,
+
+            0,
+
+            payable(address(0)),
+
+            payable(address(0)),
+
+            true
+
+        );
+
+        emit StartedCoinFlip(coinFlipID, player1, msg.value, true);
+
+    }
+```
+
+Notice how this function is both `public` \*\*and\*\* `payable`. This means that anyone can view it and also send Ether to it. The function will return the coin flip’s ID so that the player can identify their coin flip.
+
+Let’s walk through what is happening in this function:
+
+1.  The wallet address sending the Ether (msg.sender) is being assigned to player1
+2.  The `coinFlipID` is being assigned an ID that is 1 more than the current number of coin flips (numberOfCoinFlips++)
+3.  The `coinFlipID` is the key associated with the struct we wrote earlier (`EtherCoinFlipStructs`) and assigned values for the available details.
+4.  Our `StartedCoinFlip()` event is emitting the `coinFlipID`, player1, the wager in Ether, and the `isActive` boolean is being assigned true.
+
+### Ending a Coin Flip
+
+Next, we can explore the `endCoinFlip()` function. Here it is:
+
+``` solidity
+function endCoinFlip(uint256 coinFlipID) public payable {
+
+        EtherCoinFlipStruct storage currentCoinFlip = EtherCoinFlipStructs\[coinFlipID\];
+
+        require(currentCoinFlip.isActive, "Coin flip already finished");
+
+        address payable player2 = payable(msg.sender);
+
+        require(
+
+            msg.value >= (currentCoinFlip.startingWager \* 99 / 100) &&
+
+            msg.value <= (currentCoinFlip.startingWager \* 101 / 100),
+
+            "Ending wager must be within 1% of the starting wager"
+
+        );
+
+        require(coinFlipID == currentCoinFlip.ID, "Invalid coin flip ID");
+
+        currentCoinFlip.betEnder = player2;
+
+        currentCoinFlip.endingWager = msg.value;
+
+        currentCoinFlip.etherTotal = currentCoinFlip.startingWager + currentCoinFlip.endingWager;
+
+        bytes32 randomHash = keccak256(abi.encodePacked(block.chainid, block.gaslimit, block.number, block.timestamp, msg.sender));
+
+        uint256 randomResult = uint256(randomHash);
+
+        if ((randomResult % 2) == 0) {
+
+            currentCoinFlip.winner = currentCoinFlip.betStarter;
+
+            currentCoinFlip.loser = currentCoinFlip.betEnder;
+
+        } else {
+
+            currentCoinFlip.winner = currentCoinFlip.betEnder;
+
+            currentCoinFlip.loser = currentCoinFlip.betStarter;
+
+        }
+
+        (bool sent, ) = currentCoinFlip.winner.call{value: currentCoinFlip.etherTotal}("");
+
+        require(sent, "Failed to send Ether to the winner");
+
+        currentCoinFlip.isActive = false;
+
+        emit FinishedCoinFlip(currentCoinFlip.ID, currentCoinFlip.winner, currentCoinFlip.loser, false);
+
+    }
+```
+
+Again, the function is `public` and `payable`.
+
+Let's walk through what is happening in this function:
+
+1.  **Retrieve the Coin Flip Struct**: The function accesses the coin flip associated with the provided `coinFlipID` from the `EtherCoinFlipStructs` mapping.
+
+``` solidity
+    EtherCoinFlipStruct storage currentCoinFlip = EtherCoinFlipStructs\[coinFlipID\];
+```
+
+2.  **Check if the Coin Flip is Active**: It ensures that the coin flip hasn't already been finished.
+
+``` solidity
+    require(currentCoinFlip.isActive, "Coin flip already finished");
+```
+
+3.  **Assign Player 2**: The address of the caller (`msg.sender`) is assigned to `player2`.
+
+``` solidity
+    address payable player2 = payable(msg.sender);
+```
+
+4.  **Validate the Wager Amount**: It checks that the amount of Ether sent (`msg.value`) is within 1% of the starting wager, ensuring both players have similar stakes.
+
+``` solidity
+    require(
+
+        msg.value >= (currentCoinFlip.startingWager \* 99 / 100) &&
+
+        msg.value <= (currentCoinFlip.startingWager \* 101 / 100),
+
+        "Ending wager must be within 1% of the starting wager"
+
+    );
+```
+
+5.  **Verify the Coin Flip ID**: It confirms that the provided `coinFlipID` matches the ID stored in the struct.
+
+``` solidity
+    require(coinFlipID == currentCoinFlip.ID, "Invalid coin flip ID");
+```
+
+6.  **Update the Coin Flip Struct with Player 2's Details**: Assigns `player2` to `betEnder`, records their wager, and calculates the total Ether involved.
+
+``` solidity
+    currentCoinFlip.betEnder = player2;
+
+    currentCoinFlip.endingWager = msg.value;
+
+    currentCoinFlip.etherTotal = currentCoinFlip.startingWager + currentCoinFlip.endingWager;
+```
+
+7.  **Generate Pseudo-Randomness**: Creates a pseudo-random hash using blockchain properties and the caller's address to determine the winner.
+
+``` solidity
+    bytes32 randomHash = keccak256(abi.encodePacked(block.chainid, block.gaslimit, block.number, block.timestamp, msg.sender));
+
+    uint256 randomResult = uint256(randomHash);
+```
+
+8.  **Determine the Winner and Loser**: Based on the random result, it assigns the winner and loser.
+
+``` solidity
+    if ((randomResult % 2) == 0) {
+
+        currentCoinFlip.winner = currentCoinFlip.betStarter;
+
+        currentCoinFlip.loser = currentCoinFlip.betEnder;
+
+    } else {
+
+        currentCoinFlip.winner = currentCoinFlip.betEnder;
+
+        currentCoinFlip.loser = currentCoinFlip.betStarter;
+
+    }
+```
+
+9.  **Transfer Ether to the Winner**: Sends the total Ether from both wagers to the winner's address.
+
+``` solidity
+    (bool sent, ) = currentCoinFlip.winner.call{value: currentCoinFlip.etherTotal}("");
+
+    require(sent, "Failed to send Ether to the winner");
+```
+
+10. **Deactivate the Coin Flip**: Sets the `isActive` flag to `false` to indicate the coin flip is finished.
+
+``` solidity
+    currentCoinFlip.isActive = false;
+```
+
+11. **Emit the** `FinishedCoinFlip` **Event**: Emits an event with the coin flip ID, winner's address, loser's address, and the updated `isActive` status.
+
+``` solidity
+    emit FinishedCoinFlip(currentCoinFlip.ID, currentCoinFlip.winner, currentCoinFlip.loser, false);
+```
+
+### Getting Active Coin Flips
+
+The `getActiveCoinFlips()` function allows anyone to retrieve a list of all active coin flips. Here's how it's defined:
+
+``` solidity
+function getActiveCoinFlips() public view returns (EtherCoinFlipStruct\[\] memory) {
+
+        uint256 activeCount = 0;
+
+        for (uint256 i = 1; i < numberOfCoinFlips; i++) {
+
+            if (EtherCoinFlipStructs\[i\].isActive) {
+
+                activeCount++;
+
+            }
+
+        }
+
+        EtherCoinFlipStruct\[\] memory activeFlips = new EtherCoinFlipStruct\[\](activeCount);
+
+        uint256 currentIndex = 0;
+
+        for (uint256 i = 1; i < numberOfCoinFlips; i++) {
+
+            if (EtherCoinFlipStructs\[i\].isActive) {
+
+                activeFlips\[currentIndex\] = EtherCoinFlipStructs\[i\];
+
+                currentIndex++;
+
+            }
+
+        }
+
+        return activeFlips;
+
+    }
+```
+
+This function is `public` and `view`, meaning it can be called externally and doesn't modify the state of the contract. It returns an array of `EtherCoinFlipStruct` representing the active coin flips.
+
+Let's walk through what is happening in this function:
+
+1.  **Initialize Active Coin Flip Counter**: Starts by initializing a counter `activeCount` to zero.
+
+``` solidity
+    uint256 activeCount = 0;
+```
+
+2.  **Count the Active Coin Flips**: Iterates through all coin flips from ID 1 up to `numberOfCoinFlips - 1` and increments `activeCount` for each active coin flip.
+
+``` solidity
+    for (uint256 i = 1; i < numberOfCoinFlips; i++) {
+
+        if (EtherCoinFlipStructs\[i\].isActive) {
+
+            activeCount++;
+
+        }
+
+    }
+```
+
+3.  **Create an Array to Hold Active Coin Flips**: Creates a new in-memory array `activeFlips` with a size equal to the number of active coin flips.
+
+``` solidity
+    EtherCoinFlipStruct\[\] memory activeFlips = new EtherCoinFlipStruct\[\](activeCount);
+```
+
+4.  **Initialize an Index for the Array**: Initializes a variable `currentIndex` to zero to track the array index.
+
+``` solidity
+    uint256 currentIndex = 0;
+```
+
+5.  **Populate the Array with Active Coin Flips**: Iterates through the coin flips again, adding each active coin flip to the `activeFlips` array and incrementing `currentIndex`.
+
+``` solidity
+    for (uint256 i = 1; i < numberOfCoinFlips; i++) {
+
+        if (EtherCoinFlipStructs\[i\].isActive) {
+
+            activeFlips\[currentIndex\] = EtherCoinFlipStructs\[i\];
+
+            currentIndex++;
+
+        }
+
+    }
+```
+
+6.  **Return the Array of Active Coin Flips**: Returns the `activeFlips` array containing all active coin flips.
+
+``` solidity
+    return activeFlips;
+```
+
+---
+
+By understanding these functions, you're now ready to use the Ether Coin Flip smart contract! You can start new coin flips, end coin flips, and retrieve active coin flips—all essential for building the front-end of your dapp.
+
+To wrap up this section, here is the complete smart contract:
+
+``` solidity
+// SPDX-License-Identifier: MIT
+
+pragma solidity ^0.8.27;
+
+contract EtherCoinFlip {
+
+    struct EtherCoinFlipStruct {
+
+        uint256 ID;
+
+        address payable betStarter;
+
+        uint256 startingWager;
+
+        address payable betEnder;
+
+        uint256 endingWager;
+
+        uint256 etherTotal;
+
+        address payable winner;
+
+        address payable loser;
+
+        bool isActive;
+
+    }
+
+    uint256 numberOfCoinFlips = 1;
+
+    mapping(uint256 => EtherCoinFlipStruct) public EtherCoinFlipStructs;
+
+    event StartedCoinFlip(uint256 indexed theCoinFlipID, address indexed theBetStarter, uint256 theStartingWager, bool isActive);
+
+    event FinishedCoinFlip(uint256 indexed theCoinFlipID, address indexed winner, address indexed loser, bool isActive);
+
+    function newCoinFlip() public payable returns (uint256 coinFlipID) {
+
+        address payable player1 = payable(msg.sender);
+
+        coinFlipID = numberOfCoinFlips++;
+
+        EtherCoinFlipStructs\[coinFlipID\] = EtherCoinFlipStruct(
+
+            coinFlipID,
+
+            player1,
+
+            msg.value,
+
+            payable(address(0)),
+
+            0,
+
+            0,
+
+            payable(address(0)),
+
+            payable(address(0)),
+
+            true
+
+        );
+
+        emit StartedCoinFlip(coinFlipID, player1, msg.value, true);
+
+    }
+
+    function endCoinFlip(uint256 coinFlipID) public payable {
+
+        EtherCoinFlipStruct storage currentCoinFlip = EtherCoinFlipStructs\[coinFlipID\];
+
+        require(currentCoinFlip.isActive, "Coin flip already finished");
+
+        address payable player2 = payable(msg.sender);
+
+        require(
+
+            msg.value >= (currentCoinFlip.startingWager \* 99 / 100) &&
+
+            msg.value <= (currentCoinFlip.startingWager \* 101 / 100),
+
+            "Ending wager must be within 1% of the starting wager"
+
+        );
+
+        require(coinFlipID == currentCoinFlip.ID, "Invalid coin flip ID");
+
+        currentCoinFlip.betEnder = player2;
+
+        currentCoinFlip.endingWager = msg.value;
+
+        currentCoinFlip.etherTotal = currentCoinFlip.startingWager + currentCoinFlip.endingWager;
+
+        bytes32 randomHash = keccak256(abi.encodePacked(block.chainid, block.gaslimit, block.number, block.timestamp, msg.sender));
+
+        uint256 randomResult = uint256(randomHash);
+
+        if ((randomResult % 2) == 0) {
+
+            currentCoinFlip.winner = currentCoinFlip.betStarter;
+
+            currentCoinFlip.loser = currentCoinFlip.betEnder;
+
+        } else {
+
+            currentCoinFlip.winner = currentCoinFlip.betEnder;
+
+            currentCoinFlip.loser = currentCoinFlip.betStarter;
+
+        }
+
+        (bool sent, ) = currentCoinFlip.winner.call{value: currentCoinFlip.etherTotal}("");
+
+        require(sent, "Failed to send Ether to the winner");
+
+        currentCoinFlip.isActive = false;
+
+        emit FinishedCoinFlip(currentCoinFlip.ID, currentCoinFlip.winner, currentCoinFlip.loser, false);
+
+    }
+
+    function getActiveCoinFlips() public view returns (EtherCoinFlipStruct\[\] memory) {
+
+        uint256 activeCount = 0;
+
+        for (uint256 i = 1; i < numberOfCoinFlips; i++) {
+
+            if (EtherCoinFlipStructs\[i\].isActive) {
+
+                activeCount++;
+
+            }
+
+        }
+
+        EtherCoinFlipStruct\[\] memory activeFlips = new EtherCoinFlipStruct\[\](activeCount);
+
+        uint256 currentIndex = 0;
+
+        for (uint256 i = 1; i < numberOfCoinFlips; i++) {
+
+            if (EtherCoinFlipStructs\[i\].isActive) {
+
+                activeFlips\[currentIndex\] = EtherCoinFlipStructs\[i\];
+
+                currentIndex++;
+
+            }
+
+        }
+
+        return activeFlips;
+
+    }
+
+}
+```
+
+## Alternative: Using Hardhat for Smart Contract Development
+
+While this tutorial uses [Ethereum Remix](https://remix.ethereum.org/) for simplicity, you can also use [Hardhat](https://hardhat.org/) as a more professional development environment. Hardhat is a popular development framework for Ethereum that provides advanced features for testing, debugging, and deploying smart contracts.
+
+### Why Choose Hardhat?
+
+- **Local Development Environment**: Develop and test contracts locally before deploying to testnet
+- **Advanced Testing Framework**: Built-in support for comprehensive unit and integration testing
+- **Professional Tooling**: Better debugging capabilities, console logging, and error messages
+- **Version Control Friendly**: All configuration and code in files that can be committed to git
+- **Plugin Ecosystem**: Extensive plugins for verification, gas reporting, and more
+
+### Hardhat Resources
+
+- **Official Documentation**: [https://hardhat.org/docs](https://hardhat.org/docs)
+- **Hardhat Tutorial**: [https://hardhat.org/tutorial](https://hardhat.org/tutorial)
+- **Base Network Guide**: [https://docs.base.org/guides/deploy-smart-contracts](https://docs.base.org/guides/deploy-smart-contracts)
+
+For this tutorial, we'll continue with Remix for its simplicity and browser-based interface, but Hardhat is an excellent choice for more complex projects and professional development workflows.
+
+---
+
+### Testing your Base smart contract in Ethereum Remix
+
+Now that we have our smart contract code ready, it's time to test it and deploy it to the Base Sepolia testnet. We'll use Ethereum Remix, a powerful web-based IDE for Ethereum smart contract development. In this section, we'll cover:
+
+- Testing the smart contract on Remix
+- Deploying the contract to Base Sepolia using an injected Web3 provider (MetaMask)
+- Interacting with the deployed contract using Remix's UI and your crypto wallet
+
+#### Prerequisites
+
+Before we begin, ensure you have the following:
+
+- A crypto wallet installed on your web browser ([MetaMask](https://metamask.io/), [Phantom](https://phantom.app/), [Rabby](https://rabby.io/), etc.)
+- **Base Sepolia** set up on MetaMask ([add Base Sepolia to your MetaMask here](https://docs.base.org/base-chain/quickstart/connecting-to-base#other-wallets))
+- **Testnet Ether** on the Base Sepolia network ([get Base Sepolia testnet Ether here](https://faucets.chain.link/base-sepolia))
+
+> *update: 20250723*
+> 
+> **If you want to get Testnet Ether for Base Sepolia via Chainlink, there is currently a requirement for a real account balance.** 
+> But if you don't have any Mainnet balance in your account, you can use the Sepolia network instead of Base Sepolia:
+> - **Sepolia** set up on MetaMask ([Set MetaMask Testnet](https://support.metamask.io/configure/networks/how-to-view-testnets-in-metamask/))(Just show the testnets and select 【Sepolia】 )
+> - **Testnet Ether** on the Sepolia network ([PoWFaucet](https://sepolia-faucet.pk910.de/#/))(You don't need any Mainnet balance in your account, this faucet requires some mining work to be done in exchange for free testnet funds.)
+---
+
+1.  visit [https://remix.ethereum.org/](https://remix.ethereum.org/) and connect your MetaMask wallet.
+
+You can also go ahead and paste the smart contract into a new Solidity file.
+
+![](/courses/flip-coins-on-evm/images/Screenshot_2024-11-08_at_5.07.38_PM.png)
+
+1.  Change the Solidity compiler to match the version of Solidity we used to write our smart contract and hit the “Compile EtherCoinFlip.sol” button!
+
+![](/courses/flip-coins-on-evm/images/Screenshot_2024-11-08_at_5.14.53_PM.png)
+
+1.  Once you set the compiler to the correct version, and clicked compile, you’re ready to deploy it to testnet! This can be done with Remix’s built in testing feature, which allows you to [test in multiple environments](https://remix-ide.readthedocs.io/en/latest/run.html).
+
+We are going to test the smart contract using injected provider MetaMask.
+
+![](/courses/flip-coins-on-evm/images/Screenshot_2024-11-08_at_5.22.51_PM.png)
+
+1.  Once you have your MetaMask connected, you can click the “Deploy” button to deploy `EtherCoinFlip.sol` to the blockchain!
+
+Make sure your [MetaMask is set to Base Sepolia](https://docs.base.org/docs/using-base/#metamask) or Sepolia testnet, and then approve the transaction.
+
+![](/courses/flip-coins-on-evm/images/Screenshot_2024-11-08_at_5.24.46_PM.png)
+
+1.  Congratulations, you have deployed a smart contract to Base Sepolia! You can begin interacting with the smart contract under the “Deployed Contracts” tab, which will allow you to call the contract’s functions:
+
+![](/courses/flip-coins-on-evm/images/Screenshot_2024-11-08_at_5.27.33_PM.png)
+
+1.  When starting new coin flips with the `newCoinFlip()` function, make sure you assign a value in Ether, which will be the wager (or msg.value).
+
+![](/courses/flip-coins-on-evm/images/Screenshot_2024-11-08_at_5.30.39_PM.png)
+
+Once you have started a few coin flips, you can also end coin flips from another wallet. Simply call the `endCoinFlip()` function with the correct amount in the value field, and the correct coin flip ID.
+
+Once you are satisfied with your smart contract, it is time to start building a subgraph to query blockchain data from our dapp.
+
+## Building a subgraph on Base Sepolia
+
+First, go to [Subgraph Studio](https://thegraph.com/studio/).
+
+Click the “Create a Subgraph” button to get started and name your subgraph.
+
+Once you’ve created your Subgraph in Subgraph Studio, you can create your subgraph easily using the commands on the lower right of the page. Commands include CLI installation, initializing your subgraph, and deploying to Subgraph Studio!
+
+**Step-by-step⁠**[](https://thegraph.com/docs/en/quick-start/#step-by-step)
+
+### **1\. Install the Graph CLI⁠**[](https://thegraph.com/docs/en/quick-start/#1-install-the-graph-cli)
+
+You must have  [Node.js](https://nodejs.org/)  and a package manager of your choice (`npm`,  `yarn`  or  `pnpm`) installed to use the Graph CLI.
+
+On your local machine, run one of the following commands:
+
+Using  [npm](https://www.npmjs.com/):
+
+``` bash
+npm install -g @graphprotocol/graph-cli@latest
+```
+
+Using  [yarn](https://yarnpkg.com/):
+
+``` bash
+yarn global add @graphprotocol/graph-cli
+```
+
+### **2\. Create your subgraph⁠**[](https://thegraph.com/docs/en/quick-start/#2-create-your-subgraph)
+
+Subgraph Studio lets you create, manage, deploy, and publish subgraphs, as well as create and manage API keys.
+
+Go to  [Subgraph Studio](https://thegraph.com/studio/)  and connect your wallet.
+
+Click "Create a Subgraph". It is recommended to name the subgraph in Title Case: "Subgraph Name Chain Name".
+
+### **3\. Initialize your subgraph⁠**[](https://thegraph.com/docs/en/quick-start/#3-initialize-your-subgraph)
+
+The following command initializes your subgraph from an existing contract:
+
+``` bash
+graph init
+```
+
+Note: If your contract was verified on Etherscan, then the ABI will automatically be created in the CLI. Otherwise, you will need to provide the ABI while using the CLI.
+
+> update: 20250723
+> Before init your Subgraph, you need:
+> 1. Get your contract ABI content on Remix (Side Menu -> Solidity compiler -> Compile your contract -> Copy ABI to clipboard).
+> 2. Save the ABI content to your local File System as a Json file.
+> 3. Run the Command blow to set the ABI Json, contract address and network.
+``` bash
+graph init <your subgraph slug> --abi <your ABI file path> --from-contract <your contract address> --network sepolia
+
+// for example:
+graph init ether-coin-flip --abi ./EtherCoinFlip/EtherCoinFlip.abi.json --from-contract 0x620623A48158Fbe22bB9854d04472A0dfF19dFdB --network sepolia
+```
+
+
+You can find commands for your specific subgraph on the subgraph page in  [Subgraph Studio](https://thegraph.com/studio/).
+
+When you initialize your subgraph, the CLI will ask you for the following information:
+
+- **Protocol**: Choose the protocol your subgraph will be indexing data from.
+- **Subgraph slug**: Create a name for your subgraph. Your subgraph slug is an identifier for your subgraph.
+- **Directory**: Choose a directory to create your subgraph in.
+- **Ethereum network** (optional): You may need to specify which EVM-compatible network your subgraph will be indexing data from.
+- **Contract address**: Locate the smart contract address you’d like to query data from.
+- **ABI**: If the ABI is not auto-populated, you will need to input it manually as a JSON file.
+- **Start Block**: You should input the start block to optimize subgraph indexing of blockchain data. Locate the start block by finding the block where your contract was deployed.
+- **Contract Name**: Input the name of your contract.
+- **Index contract events as entities**: It is suggested that you set this to true, as it will automatically add mappings to your subgraph for every emitted event.
+- **Add another contract** (optional): You can add another contract.
+
+See the following screenshot for an example for what to expect when initializing your subgraph:
+
+![](/courses/flip-coins-on-evm/images/CLI-Example.png)
+
+### **4\. Write your subgraph⁠**[](https://thegraph.com/docs/en/quick-start/#4-write-your-subgraph)
+
+The  `init`  command in the previous step creates a scaffold subgraph that you can use as a starting point to build your subgraph. By default, your subgraph will index all emitted events.
+
+When making changes to the subgraph, you will mainly work with three files:
+
+- Manifest (`subgraph.yaml`) - defines what data sources your subgraph will index.
+- Schema (`schema.graphql`) - defines what data you wish to retrieve from the subgraph.
+- AssemblyScript Mappings (`mapping.ts`) - translates data from your data sources to the entities defined in the schema.
+
+For a detailed breakdown on how to write your subgraph, check out  [Creating a Subgraph](https://thegraph.com/docs/en/developing/creating-a-subgraph/).
+
+### **5\. Deploy your subgraph⁠**[](https://thegraph.com/docs/en/quick-start/#5-deploy-your-subgraph)
+
+Remember, deploying is not the same as publishing.
+
+- When you deploy a subgraph, you push it to  [Subgraph Studio](https://thegraph.com/studio/), where you can test, stage and review it.
+- When you publish a subgraph, you are publishing it onchain to the decentralized network.
+
+1.  Once your subgraph is written, run the following commands:
+
+    graph codegen && graph build
+
+2.  Authenticate and deploy your subgraph. The deploy key can be found on the subgraph's page in Subgraph Studio.
+
+![](./images/fixed-subgraph-studio.jpg)
+
+``` bash
+graph auth <DEPLOY_KEY>
+
+graph deploy <SUBGRAPH_SLUG>
+```
+
+The CLI will ask for a version label.
+
+It's strongly recommended to use  [semantic versioning](https://semver.org/), e.g.  `0.0.1`. That said, you can choose any string for the version such as:  `v1`,  `version1`,  `asdf`, etc.
+
+### **6\. Review your subgraph⁠**[](https://thegraph.com/docs/en/quick-start/#6-review-your-subgraph)
+
+If you’d like to examine your subgraph before publishing it to the network, you can use  [Subgraph Studio](https://thegraph.com/studio/)  to do the following:
+
+- Run and test sample queries
+- Analyze your subgraph in the dashboard to check information.
+- Check the logs on the dashboard to see if there are any errors with your subgraph. The logs of an operational subgraph will look like this:
+
+![](/courses/flip-coins-on-evm/images/subgraph-logs-image.52c55bda.png)
+
+### **7\. Publish your subgraph to The Graph Network⁠**[](https://thegraph.com/docs/en/quick-start/#7-publish-your-subgraph-to-the-graph-network)
+
+Publishing a subgraph to the decentralized network makes it available to query with 100,000 free queries per month, which is perfect for hobby developers and hackathon projects.
+
+**Publishing with Subgraph Studio⁠**[](https://thegraph.com/docs/en/quick-start/#publishing-with-subgraph-studio)
+
+1.  To publish your subgraph, click the Publish button in the dashboard.
+2.  Select the network to which you would like to publish your subgraph.
+
+**Adding curation signal to your subgraph⁠**[](https://thegraph.com/docs/en/quick-start/#adding-signal-to-your-subgraph)
+
+- To attract Indexers to query your subgraph, you should add GRT curation signal to it.
+- This improves quality of service, reduces latency, and enhances network redundancy and availability for your subgraph.
+- If eligible for indexing rewards, Indexers receive rewards based on the signaled amount.
+- It’s recommended to curate your subgraph with at least 3,000 GRT to attract 3 Indexers. Check reward eligibility based on subgraph feature usage and supported networks.
+
+To learn more about curation, read  [Curating](https://thegraph.com/docs/en/network/curating/).
+
+To save on gas costs, you can curate your subgraph in the same transaction you publish it by selecting this option:
+
+![](/courses/flip-coins-on-evm/images/studio-publish-modal.4bb2696b.png)
+
+**8\. Query your subgraph⁠**[](https://thegraph.com/docs/en/quick-start/#8-query-your-subgraph)
+
+Now, you can query your subgraph by sending GraphQL queries to its Query URL, which you can find by clicking the Query button.
+
+---
+

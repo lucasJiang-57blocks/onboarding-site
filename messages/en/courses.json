@@ -1,5 +1,14 @@
 {
   "courses": {
+    "flip-coins-on-evm": {
+      "title": "Flip Coins on EVM",
+      "description": "Learn how to flip coins on EVM with a simple dapp.",
+      "lessons": {
+        "introduction": "Introduction",
+        "flip-coins-on-evm": "Flip Coins on EVM",
+        "frontend-dapp": "Frontend Dapp"
+      }
+    },
     "introduction-to-blockchain-and-solana": {
       "title": "Introduction to Blockchain and Solana",
       "description": "Discover the fundamentals of blockchain technology and explore how Solana revolutionizes decentralized computing with high-speed, low-cost transactions.",

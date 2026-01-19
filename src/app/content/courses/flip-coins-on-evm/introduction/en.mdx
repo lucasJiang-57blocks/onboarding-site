@@ -1,0 +1,29 @@
+import { ArticleSection } from "../../../../components/ArticleSection/ArticleSection";
+
+# Build a Full-Stack Flip-Coin Dapp on Base L2 (2 days)
+
+Get started and build a full stack web3 dapp on Coinbase’s powerful L2, [Base](https://www.base.org/). Follow this tutorial and check out all the code for this project [here](https://github.com/MichaelMacaulay/Tutorial-Ether-Coin-Flip).
+
+We’ll start with [Solidity](https://docs.soliditylang.org/en/v0.8.20/), a statically-typed programming language designed for implementing [smart contracts](https://ethereum.org/en/developers/docs/smart-contracts/#:~:text=A%20%22smart%20contract%22%20is%20simply,a%20type%20of%20Ethereum%20account.) on Ethereum & EVM-compatible blockchains. We’ll use [Ethereum Remix](https://remix.ethereum.org/) to deploy our smart contract to [Base Sepolia](https://sepolia.dev/), a testnet that provides a sandbox environment for developers to test their dapps for Base.
+
+To interact with blockchain data, we’ll use a [subgraph](https://thegraph.com/docs/en/developing/developer-faqs/#1-what-is-a-subgraph) on [The Graph](https://thegraph.com/docs/en/network/overview/), a decentralized protocol for indexing and querying blockchain data. Subgraphs are open APIS that allow us to efficiently extract the data we need from the Base Sepolia blockchain. We’ll harness the power of [ethers.js](http://ethers.js/) to interact with the blockchain and our application's front-end will be built using [React.js](http://react.js/).
+
+By the end of this tutorial, you will:
+
+- Fully understand these technologies.
+- Use them to create a fully functional web3 dapp.
+
+Whether you're a seasoned developer looking to transition into web3 or an eager beginner ready to dive into decentralized applications, this tutorial will provide you with the knowledge and skills you need to start building your own web3 projects immediately.
+
+## Ether Coin Flip Overview
+
+The dapp is called Ether Coin Flip. It is a simple betting game where two players can wager on the outcome of a “coin flip.” Here’s how it works:
+
+1.  Player 1 calls the `newCoinFlip()` function with any amount of Ether
+2.  A new coin flip is created, assigned an ID and it gets added to the EtherCoinFlipStructs mapping
+3.  Player 2 calls the `endCoinFlip()` function by passing the coin flip’s ID, and is required to use the same amount of Ether is player 1
+4.  The smart contract uses pseudo-randomness to select a winner of the coin flip
+5.  All the Ether is sent to the winner of the coin flip
+
+**It’s important to note that this is for tutorial purposes only and should not be deployed to mainnet.** While pseudo-randomness can be useful for this tutorial, this smart contract could be manipulated by node validators if real funds were being used. In order to use randomness in a secure and verifiable way, consider using [Chainlink’s variable random function](https://docs.chain.link/vrf).
+

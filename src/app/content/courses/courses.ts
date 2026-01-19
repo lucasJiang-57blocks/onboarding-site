@@ -3,6 +3,18 @@ import { BRAND_COLOURS } from "@blueshift-gg/ui-components";
 
 export const courses: CourseMetadata[] = withCourseNumber([
   {
+    slug: "flip-coins-on-evm",
+    language: "General",
+    color: BRAND_COLOURS.general,
+    difficulty: 1,
+    isFeatured: true,
+    lessons: [
+      { slug: "introduction" },
+      { slug: "flip-coins-on-evm" },
+      { slug: "frontend-dapp" },
+    ],
+  },
+  {
     slug: "introduction-to-blockchain-and-solana",
     language: "General",
     color: BRAND_COLOURS.general,
