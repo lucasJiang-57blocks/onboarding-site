@@ -3,6 +3,7 @@ import "server-only";
 import { AnchorDiscriminatorCalculator } from "@/app/components/AnchorDiscriminatorCalculator/AnchorDiscriminatorCalculator";
 import ArticleSection from "@/app/components/ArticleSection/ArticleSection";
 import CodeblockWrapper from "@/app/components/CodeblockWrapper/CodeblockWrapper";
+import { MathFormula } from "@/app/components/MathFormula/MathFormula";
 import { Icon } from "@blueshift-gg/ui-components";
 import IDE from "@/app/components/TSChallengeEnv/IDE";
 import { Requirement } from "@/app/components/Challenges/Requirement";
@@ -15,13 +16,58 @@ import { toJsxRuntime } from "hast-util-to-jsx-runtime";
 import { Fragment, jsxs, jsx } from "react/jsx-runtime";
 import { fetchCompiledContent, CompiledMDX } from "./content-source";
 
+/**
+ * Preprocess MDX content to convert math formulas ($$...$$ and $...$) to code blocks/components
+ * This prevents safe-mdx from trying to parse LaTeX syntax as JSX expressions
+ */
+function preprocessMathFormulas(content: string): string {
+  let processed = content;
+  
+  // First, convert block math ($$...$$) to code blocks with lang="math"
+  // Match $$...$$ patterns, handling multiline formulas
+  // This regex handles formulas that may span multiple lines
+  processed = processed.replace(/\$\$([\s\S]*?)\$\$/g, (match, formula) => {
+    // Escape any backticks in the formula to prevent breaking the code block
+    const escapedFormula = formula.replace(/```/g, "\\`\\`\\`");
+    // Check if the match is within a blockquote by looking at the line before
+    // For simplicity, we'll just convert to code block without blockquote prefix
+    // The code block will be rendered correctly by MDX
+    return `\`\`\`math\n${escapedFormula.trim()}\n\`\`\``;
+  });
+  
+  // Convert inline math ($...$) to MathFormula components
+  // Use a regex that avoids matching escaped dollars and block math
+  // Match $...$ but not $$...$$ (already processed) or \$ (escaped)
+  // We need to be careful with the regex to avoid lookbehind issues
+  processed = processed.replace(/([^$\\]|^)\$([^$\n]+?)\$([^$]|$)/g, (match, before, formula, after) => {
+    // Skip if it's part of a block math ($$)
+    if (before === "$" || after === "$") {
+      return match;
+    }
+    // Escape the formula content to prevent JSX parsing issues
+    const escapedFormula = formula
+      .replace(/\\/g, "\\\\")
+      .replace(/"/g, '&quot;')
+      .replace(/\{/g, "&#123;")
+      .replace(/\}/g, "&#125;");
+    return `${before}<MathFormula formula="${escapedFormula}" display={false} />${after}`;
+  });
+  
+  return processed;
+}
+
 export async function renderSafeMdx(compiled: CompiledMDX) {
   // In production, mdast is already compiled and included
   // Only parse in development mode when mdast is null
   const isDevelopment = process.env.NODE_ENV === "development";
 
+  // Preprocess math formulas before parsing (only in development)
+  const preprocessedRaw = isDevelopment
+    ? preprocessMathFormulas(compiled.raw)
+    : compiled.raw;
+
   const mdast =
-    compiled.mdast || (isDevelopment ? mdxParse(compiled.raw) : null);
+    compiled.mdast || (isDevelopment ? mdxParse(preprocessedRaw) : null);
   if (!mdast) {
     throw new Error(
       "MDX AST is missing and runtime parsing is not available in production"
@@ -52,6 +98,7 @@ export async function renderSafeMdx(compiled: CompiledMDX) {
         RequirementList,
         Requirement,
         AnchorDiscriminatorCalculator,
+        MathFormula,
         blockquote: ({ children }: { children: React.ReactNode }) => (
           <blockquote className="bg-brand-primary/5 flex items-start gap-x-2 py-4 px-6">
             <Icon
@@ -68,6 +115,11 @@ export async function renderSafeMdx(compiled: CompiledMDX) {
       renderNode={(node) => {
         if (node.type === "code") {
           const lang = node.lang || "text";
+
+          // Handle math formulas (converted from $$...$$ blocks)
+          if (lang === "math") {
+            return <MathFormula formula={node.value} display={true} />;
+          }
 
           // Skip syntax highlighting for bash and sh code blocks
           if (SKIP_HIGHLIGHT_LANGS.includes(lang)) {

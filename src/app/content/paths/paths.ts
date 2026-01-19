@@ -3,6 +3,22 @@ import { BRAND_COLOURS } from "@blueshift-gg/ui-components";
 
 export const paths: PathMetadata[] = [
   {
+    slug: "web3-beginner",
+    language: "General",
+    color: BRAND_COLOURS.general,
+    difficulty: 1,
+    isFeatured: true,
+    estimatedHours: 80,
+    steps: [
+      { type: "course", slug: "introduction-to-blockchain-and-solana" },
+      { type: "course", slug: "introduction-to-ethereum" },
+      { type: "course", slug: "flip-coins-on-evm" },
+      { type: "challenge", slug: "anchor-flip-coins" },
+      { type: "course", slug: "introduction-to-uniswap" },
+      { type: "challenge", slug: "anchor-uniswap-v2" },
+    ],
+  },
+  {
     slug: "solana-developer-foundations",
     language: "General",
     color: BRAND_COLOURS.general,

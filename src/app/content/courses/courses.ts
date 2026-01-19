@@ -3,6 +3,28 @@ import { BRAND_COLOURS } from "@blueshift-gg/ui-components";
 
 export const courses: CourseMetadata[] = withCourseNumber([
   {
+    slug: "introduction-to-ethereum",
+    language: "General",
+    color: BRAND_COLOURS.general,
+    difficulty: 1,
+    isFeatured: true,
+    lessons: [
+      { slug: "what-is-ethereum" },
+      { slug: "what-is-evm" },
+    ],
+  },
+  {
+    slug: "introduction-to-uniswap",
+    language: "General",
+    color: BRAND_COLOURS.general,
+    difficulty: 1,
+    isFeatured: true,
+    lessons: [
+      { slug: "deep-dive-into-uniswap-whitepaper" },
+      { slug: "deep-dive-into-uniswap-contract"}
+    ],
+  },
+  {
     slug: "flip-coins-on-evm",
     language: "General",
     color: BRAND_COLOURS.general,

@@ -1,0 +1,91 @@
+import { ArticleSection } from "../../../../components/ArticleSection/ArticleSection";
+
+# Solana Coin Flip DApp (8 Days)
+
+<ArticleSection name="Overview" id="overview" level="h2" />
+Translate the logic of a traditional EVM smart contract into the Solana programming model (SVM). The goal is to build a fully functional "Coin Flip" game where users can wager SOL, state is managed via Accounts, and outcomes are settled on-chain.
+
+### 1. Solana Fundamentals & Setup (Day 1-2)
+
+* **Environment Configuration:**
+    * Install Rust, Solana CLI, and **Anchor Framework** (Recommended standard for modern Solana dev).
+    * Configure a local validator (`solana-test-validator`) for rapid testing.
+    * Create a Devnet wallet and fund it via the Solana faucet.
+
+
+* **Conceptual Deep Dive:**
+    * **Account Model:** Understand the separation of Code (Program) and State (Data Accounts).
+    * **PDAs (Program Derived Addresses):** Learn why PDAs are essential for creating secure, program-controlled vaults to hold user wagers.
+
+
+
+### 2. Smart Contract (Program) Development (Day 3-5)
+
+Instead of a direct line-by-line translation, implement the following specific Solana logic:
+
+* **Program Architecture (Rust/Anchor):**
+    * **Instruction 1: `initialize**`: Create a global state account or user-specific game state account using a PDA.
+    * **Instruction 2: `play**`:
+        * Accept a dynamic wager amount (in LAMPORTS) from the user.
+        * **Secure Funds:** Transfer the user's SOL into a program-owned PDA vault (Escrow).
+        * **Randomness:** Generate a pseudo-random result (Heads/Tails) using the Clock (`UnixTimestamp`) or recent block slot hash. *Note: Acknowledge that this is pseudo-randomness for demo purposes.*
+        * **Settlement:**
+            * **Win:** Transfer `wager * 2` from the PDA vault back to the user.
+            * **Loss:** Funds remain in the PDA (or are transferred to a Treasury account).
+
+
+
+* **Security Checks:**
+    * Ensure the PDA has sufficient rent-exempt balance.
+    * Verify the signer is the actual player.
+
+
+### 3. Client Integration (Day 6-7)
+
+* Develop a **TypeScript Client** (Node.js script or simple Web UI) using `@solana/web3.js` and `@coral-xyz/anchor`.
+* **Required Features:**
+    * **Wallet Connection:** Load a keypair from a local file (for scripts) or connect a wallet like Phantom (for UI).
+* **Game Loop:**
+    1. Fetch the current balance of the player.
+    2. Call the `play` instruction on the deployed program.
+    3. Wait for transaction confirmation.
+    4. Fetch and display the game result (Win/Loss) and new balance.
+
+### 4. Testing & Optimization (Day 8)
+
+* **Integration Tests:**
+    * Write tests (using Chai/Mocha) to verify:
+        * Happy Path: User bets -> Wins/Loses -> Balances update correctly.
+        * Edge Cases: User tries to bet more than they have; User tries to bet 0 SOL.
+
+
+
+* **Performance Analysis:**
+    * Record the Compute Unit (CU) consumption for the `play` instruction.
+    * Compare the gas cost (in USD equivalent) of a Solana flip vs. an Ethereum flip.
+
+---
+
+### Acceptance Criteria (Definition of Done)
+
+To pass Phase 2, participants must present the following deliverables during the review meeting:
+
+#### 1. Functional Deliverables (Code & Deployment)
+
+* **GitHub Repository:** Clean, commented code for both the Rust Program and JS/TS Client.
+* **Live Devnet Demo:** Provide a transaction signature (Tx Hash) on [Solscan.io](https://solscan.io/?cluster=devnet) showing a completed game interaction.
+* **Test Coverage:** Run `anchor test` live to show all test cases passing (Green).
+
+#### 2. Technical Defense (The "Why" & "How")
+
+* **PDA Strategy:** Explain specifically **how the PDA seeds were constructed** and **why** a PDA was necessary for holding the wager (vs. a normal keypair).
+* **Security Model:** Explain who pays for the account rent and how the program prevents unauthorized withdrawals.
+* **EVM vs. SVM Reflection:** Provide a specific comparison table highlighting at least 3 differences encountered (e.g., "Payable functions" in Solidity vs. "CPI to System Program" in Solana).
+
+#### 3. Documentation
+
+* **README.md:** Must include:
+* Program ID of the deployed contract on Devnet.
+* Instruction on how to run the client script locally.
+* A brief diagram/flowchart of how funds move during a game.
+

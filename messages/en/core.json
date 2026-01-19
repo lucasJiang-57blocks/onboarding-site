@@ -62,6 +62,10 @@
     "progress": "Progress",
     "empty_title": "No paths found",
     "empty_description": "Try changing your filters to see learning paths here.",
+    "web3-beginner": {
+      "title": "Web3 Beginner",
+      "description": "Learn the basics of Web3 and blockchain development with Solana."
+    },
     "solana-developer-foundations": {
       "title": "Solana Developer Foundations",
       "description": "Start your Solana journey with blockchain fundamentals, tokens, and NFTs."

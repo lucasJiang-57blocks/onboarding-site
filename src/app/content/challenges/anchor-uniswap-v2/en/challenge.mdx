@@ -1,0 +1,98 @@
+import { ArticleSection } from "../../../../components/ArticleSection/ArticleSection";
+
+## Solana AMM (Uniswap v2 Style) Implementation (10 Days)
+
+<ArticleSection name="Overview" id="overview" level="h2" />
+Build a functional Constant Product Market Maker (CPMM) program on Solana. The goal is not to clone the entire Uniswap ecosystem, but to implement the core mathematical logic () and liquidity management using Solana's architecture (Anchor Framework & SPL Token).
+
+**Prerequisite:** Familiarity with Anchor Framework and basic Rust (completed in Phase 2).
+
+### 1. Architecture & Design (Day 1-2)
+
+* **Concept Mapping (EVM vs. SVM):**
+    * Analyze Uniswap V2's `UniswapV2Pair.sol`.
+    * **Critical Task:** Redesign the "Factory" pattern.
+        * *EVM:* Factory deploys a new smart contract for each pair.
+        * *Solana:* One single Program manages multiple "Pool State Accounts".
+    * **PDA Design:** Define the seeds for:
+        * The Pool State Account (stores reserves, fee info).
+        * The Token Vaults (PDAs that hold Token A and Token B).
+        * The LP Mint Authority (PDA that controls minting/burning LP tokens).
+
+* **Deliverable:** An architectural diagram showing the relationship between the User, The AMM Program, The SPL Token Program, and the Vault PDAs.
+
+### 2. Core Program Development (Day 3-7)
+
+Implement the Smart Contract using **Anchor Framework**. You must implement the following instructions:
+
+* **Instruction 1: `initialize_pool**`
+    * Create a new Pool State account.
+    * Create two token vaults (Token Accounts owned by PDA).
+    * Initialize the LP Token Mint.
+
+
+* **Instruction 2: `add_liquidity**`
+    * Transfer Token A and B from user to Vaults.
+    * Calculate LP tokens to mint based on current reserves (or initial deposit logic).
+    * **CPI Call:** Invoke SPL Token Program to `mint_to` the user's LP token account.
+
+
+* **Instruction 3: `remove_liquidity**`
+    * Burn user's LP tokens.
+    * Calculate share of Token A and B.
+    * **CPI Call:** Invoke SPL Token Program to `transfer` from Vaults back to user.
+
+
+* **Instruction 4: `swap**`
+    * Implement the Constant Product Formula: .
+    * Calculate output amount with a hardcoded fee (e.g., 0.3%).
+    * Enforce "Slippage Protection" (minimum output amount).
+
+
+
+### 3. Testing & Client Integration (Day 8-9)
+
+* **Comprehensive Testing (TypeScript):**
+    * **Math Validation:** Test if the swap output matches the  formula exactly (accounting for integer precision/rounding).
+    * **Fuzz Testing:** Write a script to perform random swaps and ensure the invariant  (mostly) increases due to fees.
+
+
+* **Client Script:**
+    * Create a TypeScript script that allows:
+        * Creating a pool for two random test tokens.
+        * Adding liquidity.
+        * performing a swap and printing the "Price Impact".
+
+
+### 4. Deployment & Documentation (Day 10)
+
+* **Devnet Deployment:** Deploy the program to Solana Devnet.
+* **Event Logging:** Instead of full Dune analytics, implement `emit!` macros in Anchor to log events (Swap, Deposit, Withdraw) so they can be tracked on Solscan.
+
+---
+
+### Acceptance Criteria (Definition of Done)
+
+To pass Phase 3, participants must demonstrate a working AMM with the following standard:
+
+#### 1. Functional Implementation
+
+* **Live Demo:** Perform a live swap on Devnet using a CLI script or simple UI.
+* **Liquidity Mechanics:** Demonstrate that adding liquidity *after* some trading correctly calculates the new LP token ratio (no "first depositor" bugs).
+* **Fees:** Show that the pool reserves grow slightly after multiple swaps (collecting the 0.3% fee).
+
+#### 2. Code Quality & Architecture
+
+* **No "Hardcoded" Addresses:** The program must handle *any* valid SPL token pair, not just specific ones.
+* **Security:** Demonstrate checks for:
+* **Integer Overflow/Underflow:** (Rust handles this, but explicit checks for zero-liquidity are needed).
+* **PDA Validation:** Ensuring only the correct Vaults can be spent by the program.
+
+
+* **Anchor Usage:** Correct use of `#[account(mut)]`, `#[account(seeds...)]` constraints to reduce manual security checks.
+
+#### 3. Technical Q&A (The "Interview")
+
+* **Explain the difference:** "In Uniswap V2 Solidity, `k` is stored in storage variables. Where is `k` stored in your Solana program?" (Answer: It's calculated dynamically from Vault balances or stored in the Pool Account).
+* **CPI Explanation:** Explain how your program "signed" the transaction to move funds out of the Vault without the private key (using PDA seeds).
+

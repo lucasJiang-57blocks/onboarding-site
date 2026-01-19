@@ -60,6 +60,22 @@
         }
       }
     },
+    "anchor-flip-coins": {
+      "title": "Solana Flip Coins",
+      "requirements": {
+        "flip-coins": {
+          "title": "Challenge: Flip Coins"
+        }
+      }
+    },
+    "anchor-uniswap-v2": {
+      "title": "Solana Uniswap V2",
+      "requirements": {
+        "initialize": {
+          "title": "Challenge: Initialize the Pool"
+        }
+      }
+    },
     "pinocchio-memo": {
       "title": "Pinocchio Memo",
       "requirements": {

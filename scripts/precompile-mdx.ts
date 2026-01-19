@@ -80,6 +80,46 @@ async function needsRecompilation(
   }
 }
 
+/**
+ * Preprocess MDX content to convert math formulas ($$...$$ and $...$) to code blocks/components
+ * This prevents safe-mdx from trying to parse LaTeX syntax as JSX expressions
+ */
+function preprocessMathFormulas(content: string): string {
+  let processed = content;
+  
+  // First, convert block math ($$...$$) to code blocks with lang="math"
+  // Match $$...$$ patterns, handling multiline formulas
+  // This regex handles formulas that may span multiple lines
+  processed = processed.replace(/\$\$([\s\S]*?)\$\$/g, (match, formula) => {
+    // Escape any backticks in the formula to prevent breaking the code block
+    const escapedFormula = formula.replace(/```/g, "\\`\\`\\`");
+    // Check if the match is within a blockquote by looking at the line before
+    // For simplicity, we'll just convert to code block without blockquote prefix
+    // The code block will be rendered correctly by MDX
+    return `\`\`\`math\n${escapedFormula.trim()}\n\`\`\``;
+  });
+  
+  // Convert inline math ($...$) to MathFormula components
+  // Use a regex that avoids matching escaped dollars and block math
+  // Match $...$ but not $$...$$ (already processed) or \$ (escaped)
+  // We need to be careful with the regex to avoid lookbehind issues
+  processed = processed.replace(/([^$\\]|^)\$([^$\n]+?)\$([^$]|$)/g, (match, before, formula, after) => {
+    // Skip if it's part of a block math ($$)
+    if (before === "$" || after === "$") {
+      return match;
+    }
+    // Escape the formula content to prevent JSX parsing issues
+    const escapedFormula = formula
+      .replace(/\\/g, "\\\\")
+      .replace(/"/g, '&quot;')
+      .replace(/\{/g, "&#123;")
+      .replace(/\}/g, "&#125;");
+    return `${before}<MathFormula formula="${escapedFormula}" display={false} />${after}`;
+  });
+  
+  return processed;
+}
+
 async function precompileMDX(
   inputPath: string,
   outputPath: string,
@@ -89,7 +129,9 @@ async function precompileMDX(
 ) {
   try {
     const raw = await readFile(inputPath, "utf-8");
-    const mdast = mdxParse(raw);
+    // Preprocess math formulas before parsing
+    const preprocessed = preprocessMathFormulas(raw);
+    const mdast = mdxParse(preprocessed);
 
     // Pre-highlight all code blocks
     const highlightedCode: Record<string, HighlightedCode> = {};

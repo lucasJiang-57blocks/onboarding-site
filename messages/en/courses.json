@@ -1,5 +1,21 @@
 {
   "courses": {
+    "introduction-to-uniswap": {
+      "title": "Introduction to Uniswap V2",
+      "description": "Learn the basics of Uniswap V2 and the Uniswap V2 contract.",
+      "lessons": {
+        "deep-dive-into-uniswap-whitepaper": "Deep Dive into Uniswap V2 Whitepaper",
+        "deep-dive-into-uniswap-contract": "Deep Dive into Uniswap V2 Contract"
+      }
+    },
+    "introduction-to-ethereum": {
+      "title": "Introduction to Ethereum",
+      "description": "Learn the basics of Ethereum and the Ethereum Virtual Machine (EVM).",
+      "lessons": {
+        "what-is-ethereum": "What is Ethereum?",
+        "what-is-evm": "What is the Ethereum Virtual Machine (EVM)?"
+      }
+    },
     "flip-coins-on-evm": {
       "title": "Flip Coins on EVM",
       "description": "Learn how to flip coins on EVM with a simple dapp.",

@@ -3,6 +3,37 @@ import { BRAND_COLOURS } from "@blueshift-gg/ui-components";
 
 export const challenges: ChallengeMetadata[] = [
   {
+    slug: "anchor-flip-coins",
+    language: "Anchor",
+    color: BRAND_COLOURS.anchor,
+    difficulty: 1,
+    isFeatured: true,
+    unitName: "Solana Flip Coins",
+    apiPath: "/v1/verify/anchor/flip-coins",
+    tags: ["Anchor", "Coin Flip", "Solana"],
+    requirements: [
+      { instructionKey: "flip-coins" },
+    ],
+    collectionMintAddress: "",
+  },
+  {
+    slug: "anchor-uniswap-v2",
+    language: "Anchor",
+    color: BRAND_COLOURS.anchor,
+    difficulty: 1,
+    isFeatured: true,
+    unitName: "Solana Uniswap V2",
+    apiPath: "/v1/verify/anchor/uniswap-v2",
+    tags: ["Anchor", "DeFi", "Solana"],
+    requirements: [
+      { instructionKey: "initialize_pool" },
+      { instructionKey: "add_liquidity" },
+      { instructionKey: "remove_liquidity" },
+      { instructionKey: "swap" },
+    ],
+    collectionMintAddress: "",
+  },
+  {
     slug: "anchor-vault",
     language: "Anchor",
     color: BRAND_COLOURS.anchor,
