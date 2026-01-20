@@ -20,7 +20,7 @@ export const challenges: ChallengeMetadata[] = [
     slug: "anchor-uniswap-v2",
     language: "Anchor",
     color: BRAND_COLOURS.anchor,
-    difficulty: 1,
+    difficulty: 2,
     isFeatured: true,
     unitName: "Solana Uniswap V2",
     apiPath: "/v1/verify/anchor/uniswap-v2",
