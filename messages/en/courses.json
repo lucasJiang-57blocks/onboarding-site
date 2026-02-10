@@ -1,5 +1,21 @@
 {
   "courses": {
+    "build-a-solana-explorer": {
+      "title": "Build a Solana Explorer",
+      "description": "Learn how to build a Solana explorer with Typescript.",
+      "lessons": {
+        "tx-history": "Transaction History",
+        "tx-detail": "Transaction Detail",
+        "staking-account": "Staking Account"
+      }
+    },
+    "create-evm-dapp-with-wagmi-and-rainbowkit": {
+      "title": "Create EVM Dapp with Wagmi and Rainbowkit",
+      "description": "Learn how to create an EVM dapp with Wagmi and Rainbowkit.",
+      "lessons": {
+        "integrate-wagmi-and-rainbow": "Integrate Wagmi and Rainbow"
+      }
+    },
     "your-first-solana-fullstack-dapp": {
       "title": "Your First Solana Fullstack Dapp",
       "description": "Learn how to build your first Solana fullstack dapp with React, Anchor, Rust, and Phantom.",
@@ -13,7 +29,7 @@
       }
     },
     "solana-bootcamp": {
-      "title": "Solana Bootcamp",
+      "title": "Solana Bootcamp 2026",
       "description": "Learn the basics of Solana and the Solana blockchain.",
       "lessons": {
         "introduction": "Introduction",

@@ -1,0 +1,269 @@
+import { ArticleSection } from "../../../../components/ArticleSection/ArticleSection";
+
+# How to Build a Solana Explorer Clone (Part 3) - Get Staking Accounts
+
+<ArticleSection name="Overview" id="overview" level="h2" />
+
+**Solana Explorer** gives you access to transaction history, token balances, NFT metadata, and more. Building a clone is a great way to deepen your understanding. In this 3-part series we build a simple Solana Explorer clone.
+
+In **Part 3**, we fetch a wallet’s **staking accounts** and display how much SOL is staked and with which validator(s).
+
+---
+
+<ArticleSection name="What You Will Do" id="what-you-will-do" level="h2" />
+
+You will extend the app from [Part 2: Transaction Detail](/courses/build-a-solana-explorer/tx-detail) by adding a component that shows a **table of staking accounts**: stake balance (SOL), age (epochs), and delegation (validator).
+
+---
+
+<ArticleSection name="What You Will Need" id="what-you-will-need" level="h2" />
+
+- **Node.js** (v16.15 or higher)
+- **TypeScript** experience and **ts-node** installed
+- Basic **HTML/CSS** knowledge
+- Experience with **Solana transactions** (see: How to Track Solana Transaction History with Logs)
+- Experience with **Solana Scaffold** (see: How to Connect Users to Your dApp with the Solana Wallet Adapter and Scaffold)
+
+You should have completed **How to Build a Solana Explorer Clone (Part 2: Transaction Detail)**. We build on that codebase.
+
+**Quick start** (if you didn’t finish Part 2): create a project and use the starter code:
+
+```bash
+mkdir solana-explorer-demo
+cd solana-explorer-demo
+git clone https://github.com/quiknode-labs/technical-content.git .
+cd solana/explorer-clone-part-3/starter
+yarn install
+echo > .env
+```
+
+Add your RPC URL to `.env`:
+
+```bash
+REACT_APP_SOLANA_RPC_HOST=https://example.solana-devnet.quiknode.pro/000000/
+REACT_APP_NETWORK=devnet
+```
+
+Then run `yarn dev`. You should have the app running and **http://localhost:3000/explorer** showing the explorer view.
+
+---
+
+<ArticleSection name="Create a Staking Detail Component" id="staking-detail-component" level="h2" />
+
+We’ll add a component that fetches a wallet’s staking accounts via the **Stake Program** and displays them in a table.
+
+### Create the file
+
+From your project directory:
+
+```bash
+cp ./src/components/template.tsx ./src/components/StakingDetail.tsx
+```
+
+Open `StakingDetail.tsx` in your editor.
+
+### Rename component and add imports
+
+1. Rename the component from `Template` to `StakingDetail` (or `StakeDetail` to match the export below):
+
+Replace:
+
+```ts
+export const Template: FC = () => {
+```
+
+with:
+
+```ts
+export const StakeDetail: FC = () => {
+```
+
+2. Use these imports:
+
+```ts
+import { useConnection, useWallet } from '@solana/wallet-adapter-react';
+import { AccountInfo, LAMPORTS_PER_SOL, ParsedAccountData, PublicKey } from '@solana/web3.js';
+import { FC, useEffect, useState } from 'react';
+import { notify } from "../utils/notifications";
+```
+
+Same pattern as **TransactionLog** and **TransactionDetail**: we use **useConnection**, **useWallet**, and state to fetch and render data.
+
+### Full component code
+
+The component uses **getParsedProgramAccounts** on the **Stake Program** with filters (data size and `memcmp` on the wallet offset) to get only this wallet’s stake accounts, then builds a table of stake address, balance (SOL), epoch age, and delegation (validator voter).
+
+```ts
+import { useConnection, useWallet } from '@solana/wallet-adapter-react';
+import { AccountInfo, LAMPORTS_PER_SOL, ParsedAccountData, PublicKey } from '@solana/web3.js';
+import { FC, useEffect, useState } from 'react';
+import { notify } from "../utils/notifications";
+
+const STAKE_PROGRAM_PK = new PublicKey('Stake11111111111111111111111111111111111111');
+const WALLET_OFFSET = 44;
+const DATA_SIZE = 200;
+
+export const StakeDetail: FC = () => {
+  const { connection } = useConnection();
+  const { publicKey } = useWallet();
+  const [stakeAccounts, setStakeAccounts] = useState<
+    Array<{ pubkey: PublicKey; account: AccountInfo<ParsedAccountData | Buffer> }> | undefined
+  >(undefined);
+  const [stakeCard, setStakeCard] = useState<JSX.Element | null>(null);
+
+  useEffect(() => {
+    if (stakeAccounts) buildView();
+  }, [stakeAccounts]);
+
+  async function getStakeAccounts(wallet: string) {
+    const accounts = await connection.getParsedProgramAccounts(STAKE_PROGRAM_PK, {
+      filters: [
+        { dataSize: DATA_SIZE },
+        { memcmp: { offset: WALLET_OFFSET, bytes: wallet } },
+      ],
+    });
+    setStakeAccounts(accounts);
+  }
+
+  function buildView() {
+    if (!stakeAccounts || stakeAccounts.length === 0) {
+      setStakeCard(<>No Stake Accounts Found</>);
+      return;
+    }
+    const header = (
+      <thead className="text-xs text-gray-700 uppercase bg-zinc-50 dark:bg-gray-700 dark:text-gray-400">
+        <tr>
+          <td className="px-6 py-3">#</td>
+          <td className="px-6 py-3">Stake Wallet</td>
+          <td className="px-6 py-3">Balance (SOL)</td>
+          <td className="px-6 py-3">Age (Epochs)</td>
+          <td className="px-6 py-3">Delegation</td>
+        </tr>
+      </thead>
+    );
+    const rows = stakeAccounts.map((account, i) => {
+      const info = (account.account.data as { parsed?: { info?: { stake?: { delegation?: { activationEpoch: unknown; voter: string } } } } })?.parsed?.info;
+      const epochStart = info?.stake?.delegation?.activationEpoch != null ? Number(info.stake.delegation.activationEpoch) : 0;
+      const epochCurrent = Number(account.account.rentEpoch ?? 0);
+      const epochAge = epochCurrent - epochStart;
+      const voter = info?.stake?.delegation?.voter ?? '-';
+      return (
+        <tr key={i + 1} className="bg-white border-b bg-zinc-800 dark:border-zinc-700">
+          <td className="px-6 py-3">{i + 1}</td>
+          <td className="px-6 py-3">{account.pubkey.toString()}</td>
+          <td className="px-6 py-3">{'◎ ' + (account.account.lamports / LAMPORTS_PER_SOL).toFixed(2)}</td>
+          <td className="px-6 py-3">{epochAge}</td>
+          <td className="px-6 py-3">{voter}</td>
+        </tr>
+      );
+    });
+    setStakeCard(
+      <table className="w-full text-sm text-left text-gray-500 dark:text-gray-400">
+        {header}
+        <tbody>{rows}</tbody>
+      </table>
+    );
+  }
+
+  const onClick = async () => {
+    if (!publicKey) {
+      notify({ type: 'error', message: 'error', description: 'Wallet not connected!' });
+      return;
+    }
+    try {
+      await getStakeAccounts(publicKey.toString());
+    } catch (error: unknown) {
+      const msg = error instanceof Error ? error.message : 'Unknown error';
+      notify({ type: 'error', message: "Couldn't find Staking Accounts!", description: msg });
+    }
+  };
+
+  return (
+    <div>
+      <div className="text-center">
+        <button
+          className="px-8 m-2 btn animate-pulse bg-gradient-to-r from-[#9945FF] to-[#14F195] center hover:from-pink-500 hover:to-yellow-500 ..."
+          onClick={onClick}
+        >
+          <span>Get Staked Accounts</span>
+        </button>
+      </div>
+      <div>{stakeCard}</div>
+    </div>
+  );
+};
+```
+
+**Summary:**
+
+- **STAKE_PROGRAM_PK** — Stake Program ID. **WALLET_OFFSET** (44) and **DATA_SIZE** (200) are used in **getParsedProgramAccounts** filters so we only get stake accounts for the given wallet.
+- **getStakeAccounts(wallet)** — Calls `connection.getParsedProgramAccounts(STAKE_PROGRAM_PK, { filters: [dataSize, memcmp] })`, then `setStakeAccounts`.
+- **buildView** — Builds a table with columns: #, Stake Wallet (pubkey), Balance (SOL from lamports), Age (epochs since activation), Delegation (validator voter). If there are no accounts, shows “No Stake Accounts Found”.
+- **onClick** — Ensures wallet is connected, then calls `getStakeAccounts(publicKey.toString())`.
+
+---
+
+<ArticleSection name="Update Explorer View" id="update-explorer-view" level="h2" />
+
+Add **StakeDetail** to the Explorer view so it appears on `/explorer`.
+
+In `src/views/explorer/index.tsx`:
+
+1. **Import** the component:
+
+```ts
+import { StakeDetail } from "components/StakingDetail";
+```
+
+2. **Render** it next to **TransactionLog** (and **GetTokens** if you have it):
+
+```ts
+<div className="text-center">
+  <TransactionLog />
+  <GetTokens />
+  <StakeDetail />
+</div>
+```
+
+No new page is needed—the Explorer page already renders this view.
+
+---
+
+<ArticleSection name="Run and Test" id="run-and-test" level="h2" />
+
+```bash
+yarn dev
+```
+
+Open **http://localhost:3000/explorer**, connect a wallet, and click **“Get Staked Accounts”**. If the wallet has no stake accounts, the table will be empty or show “No Stake Accounts Found”.
+
+**Testing without a staking account:** you can call **getStakeAccounts** with a known wallet that has stake accounts:
+
+```ts
+// Example: use a known mainnet wallet with stake accounts
+await getStakeAccounts('AhbkRLfEuL5zV5gbooQzcDP7dZLBWK5En3mPVixs34yb'); // mainnet-beta
+
+// Or a devnet wallet:
+await getStakeAccounts('Cxcfw2GC1tfEPEuNABNwTujwr6nEtsV6Enzjxz2pDqoE'); // devnet
+```
+
+Temporarily replace `publicKey.toString()` in `onClick` with one of these (and use the matching network) to verify the query and table.
+
+---
+
+<ArticleSection name="Wrap Up" id="wrap-up" level="h2" />
+
+If you’ve followed all three parts, you now have a small **Solana Explorer**–style app that shows:
+
+- Token accounts  
+- Transaction history  
+- Transaction details (via dynamic routes)  
+- Staking accounts  
+
+You can add more components and views using the same patterns. Ideas for next steps:
+
+- **NFT gallery** — e.g. [How to Build an NFT Gallery on Solana](https://www.quicknode.com/guides/solana-development/how-to-build-an-nft-gallery-on-solana-using-quicknodes-nft-api)
+- **Search bar** — Look up other wallets by address
+- **Token mint detail** — Use dynamic routes (like Part 2) for clickable token mint pages
+
+For more detail on dynamic routes and transaction detail, see [Part 2: Transaction Detail](/courses/build-a-solana-explorer/tx-detail).

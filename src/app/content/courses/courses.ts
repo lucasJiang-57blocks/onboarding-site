@@ -3,6 +3,28 @@ import { BRAND_COLOURS } from "@blueshift-gg/ui-components";
 
 export const courses: CourseMetadata[] = withCourseNumber([
   {
+    slug: "build-a-solana-explorer",
+    language: "Typescript",
+    color: BRAND_COLOURS.typescript,
+    difficulty: 1,
+    isFeatured: true,
+    lessons: [
+      { slug: "tx-history" },
+      { slug: "tx-detail" },
+      { slug: "staking-account" },
+    ],
+  },
+  {
+    slug: "create-evm-dapp-with-wagmi-and-rainbowkit",
+    language: "Typescript",
+    color: BRAND_COLOURS.typescript,
+    difficulty: 1,
+    isFeatured: true,
+    lessons: [
+      { slug: "integrate-wagmi-and-rainbow" },
+    ],
+  },
+  {
     slug: "your-first-solana-fullstack-dapp",
     language: "Anchor",
     color: BRAND_COLOURS.anchor,

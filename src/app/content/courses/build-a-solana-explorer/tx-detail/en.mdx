@@ -1,0 +1,435 @@
+import { ArticleSection } from "../../../../components/ArticleSection/ArticleSection";
+
+# How to Build a Solana Explorer Clone (Part 2) — Transaction Detail Using Dynamic Routes
+
+<ArticleSection name="Overview" id="overview" level="h2" />
+
+**Solana Explorer** gives you access to transaction history, token balances, NFT metadata, and more on the Solana blockchain. Building a clone is a great way to deepen your understanding. In this 3-part series we build a simple Solana Explorer clone.
+
+In **Part 1**, we fetched transaction history and displayed it in a table. In this guide we add a **transaction detail page** with a dynamic URL, so users can click any row in the history table and see full details for that transaction.
+
+---
+
+<ArticleSection name="What You Will Do" id="what-you-will-do" level="h2" />
+
+You will extend the Solana Explorer from [Part 1: Transaction History](/courses/build-a-solana-explorer/tx-history) by adding a component and a **dynamic route** so that opening a URL like `/tx/YOUR_TRANSACTION_ID` shows the detail for that transaction.
+
+---
+
+<ArticleSection name="What You Will Need" id="what-you-will-need" level="h2" />
+
+- **Node.js** (v16.15 or higher)
+- **TypeScript** experience and **ts-node** installed
+- Basic **HTML/CSS** knowledge
+- Experience with **Solana transactions** (see: How to Track Solana Transaction History with Logs)
+- Experience with **Solana Scaffold** (see: How to Connect Users to Your dApp with the Solana Wallet Adapter and Scaffold)
+
+You must have completed **How to Build a Solana Explorer Clone (Part 1: Transaction History)**. We build on that codebase.
+
+**Quick start** (if you didn’t finish Part 1): create a project and use the starter code:
+
+```bash
+mkdir solana-explorer-demo
+cd solana-explorer-demo
+git clone https://github.com/quiknode-labs/technical-content.git .
+cd solana/explorer-clone-part-2/starter
+yarn install
+echo > .env
+```
+
+Add your RPC URL to `.env`:
+
+```bash
+REACT_APP_SOLANA_RPC_HOST=https://example.solana-devnet.quiknode.pro/000000/
+REACT_APP_NETWORK=devnet
+```
+
+Then run `yarn dev`. You should have the app running and `http://localhost:3000/explorer` showing the transaction history view.
+
+---
+
+<ArticleSection name="Create a Transaction Detail Component" id="transaction-detail-component" level="h2" />
+
+We’ll add a component that shows full details for a single transaction. We already have the data we need from Part 1; here we add a dedicated detail view and wire it to a dynamic URL.
+
+### Create the file
+
+From your project directory:
+
+```bash
+cp ./src/components/template.tsx ./src/components/TransactionDetail.tsx
+```
+
+Open `TransactionDetail.tsx` in your editor.
+
+### Rename component and add imports
+
+1. Rename the component from `Template` to `TransactionDetail`:
+
+Replace:
+
+```ts
+export const Template: FC = () => {
+```
+
+with:
+
+```ts
+export const TransactionDetail: FC = () => {
+```
+
+2. Use these imports (including **useRouter** so we can read the transaction ID from the URL):
+
+```ts
+import { useRouter } from 'next/router';
+import { useConnection } from '@solana/wallet-adapter-react';
+import { LAMPORTS_PER_SOL, ParsedTransactionWithMeta } from '@solana/web3.js';
+import { FC, useEffect, useState } from 'react';
+```
+
+A route like `/tx/TRANSACTION_ID` will give us `TRANSACTION_ID` via `router.query`, so we can fetch and display that transaction.
+
+### Full component code
+
+Below is the full `TransactionDetail` component. It:
+
+- Reads `txid` from the URL with `useRouter`
+- Fetches parsed transaction data with `getParsedTransaction`
+- Builds an overview table (signature, timestamp, status), accounts table (balance changes), token changes table, and programs table
+- Renders them in a single view
+
+```ts
+import { useRouter } from 'next/router';
+import { useConnection } from '@solana/wallet-adapter-react';
+import { LAMPORTS_PER_SOL, ParsedTransactionWithMeta } from '@solana/web3.js';
+import { FC, useEffect, useState } from 'react';
+
+export const TransactionDetail: FC = () => {
+  const router = useRouter();
+  const { txid } = router.query;
+  const { connection } = useConnection();
+  const [transactionDetail, setTransactionDetail] = useState<ParsedTransactionWithMeta | null>(null);
+  const [transactionCard, setTransactionCard] = useState<JSX.Element | null>(null);
+  const search = Array.isArray(txid) ? txid[0] : txid;
+
+  useEffect(() => {
+    if (!router.isReady) return;
+    if (search) getTransaction(search);
+  }, [router.isReady, search]);
+
+  useEffect(() => {
+    if (transactionDetail) buildView();
+  }, [transactionDetail, connection]);
+
+  async function getTransaction(txid: string) {
+    const transactionDetails = await connection.getParsedTransaction(txid, {
+      maxSupportedTransactionVersion: 0,
+    });
+    setTransactionDetail(transactionDetails);
+  }
+
+  function buildView() {
+    if (transactionDetail) {
+      const overviewTable = buildOverviewTable();
+      const accountsTable = buildAccountsTable();
+      const tokensTable = buildTokensTable();
+      const programsTable = buildProgramsTable();
+      const view = (
+        <>
+          <p className="text-left text-lg font-bold">Overview:</p>
+          {overviewTable}
+          <br />
+          <p className="text-left text-lg font-bold">Account Input(s):</p>
+          {accountsTable}
+          <br />
+          <p className="text-left text-lg font-bold">SPL Token Change(s):</p>
+          {tokensTable}
+          <br />
+          <p className="text-left text-lg font-bold">Program(s):</p>
+          {programsTable}
+        </>
+      );
+      setTransactionCard(view);
+    } else {
+      setTransactionCard(null);
+    }
+  }
+
+  function buildOverviewTable() {
+    if (!transactionDetail) return null;
+    const date = new Date((transactionDetail.blockTime ?? 0) * 1000).toLocaleDateString();
+    return (
+      <table className="w-full text-sm text-left text-gray-500 dark:text-gray-400">
+        <tbody>
+          <tr className="bg-white border-b bg-zinc-800 dark:border-zinc-700">
+            <td className="px-6 py-3">Signature</td>
+            <td className="px-6 py-3">{transactionDetail.transaction.signatures[0]}</td>
+          </tr>
+          <tr className="bg-white border-b bg-zinc-800 dark:border-zinc-700">
+            <td className="px-6 py-3">Timestamp</td>
+            <td className="px-6 py-3">{date}</td>
+          </tr>
+          <tr className="bg-white border-b bg-zinc-800 dark:border-zinc-700">
+            <td className="px-6 py-3">Status</td>
+            <td className="px-6 py-3">{transactionDetail.meta?.err ? 'Failed' : 'Success'}</td>
+          </tr>
+        </tbody>
+      </table>
+    );
+  }
+
+  function buildAccountsTable() {
+    if (!transactionDetail?.meta) return null;
+    const { preBalances, postBalances } = transactionDetail.meta;
+    const header = (
+      <thead className="text-xs text-gray-700 uppercase bg-zinc-50 dark:bg-gray-700 dark:text-gray-400">
+        <tr>
+          <td className="px-6 py-3">#</td>
+          <td className="px-6 py-3">Address</td>
+          <td className="px-6 py-3 text-center">Change</td>
+          <td className="px-6 py-3 text-center">Post Balance</td>
+        </tr>
+      </thead>
+    );
+    const rows = transactionDetail.transaction.message.accountKeys.map((account, i) => {
+      const solChange = (postBalances[i] - preBalances[i]) / LAMPORTS_PER_SOL;
+      return (
+        <tr key={i + 1} className="bg-white border-b bg-zinc-800 dark:border-zinc-700">
+          <td className="px-6 py-3">{i + 1}</td>
+          <td className="px-6 py-3">{account.pubkey.toString()}</td>
+          <td className="px-6 py-3 text-center">
+            {solChange === 0 ? '-' : '◎ ' + solChange.toFixed(6)}
+          </td>
+          <td className="px-6 py-3 text-center">
+            ◎ {(postBalances[i] / LAMPORTS_PER_SOL).toFixed(3)}
+          </td>
+        </tr>
+      );
+    });
+    return (
+      <table className="w-full text-sm text-left text-gray-500 dark:text-gray-400">
+        {header}
+        <tbody>{rows}</tbody>
+      </table>
+    );
+  }
+
+  function buildTokensTable() {
+    if (!transactionDetail?.meta) return null;
+    const { preTokenBalances, postTokenBalances } = transactionDetail.meta;
+    const header = (
+      <thead className="text-xs text-gray-700 uppercase bg-zinc-50 dark:bg-gray-700 dark:text-gray-400">
+        <tr>
+          <td className="px-6 py-3">#</td>
+          <td className="px-6 py-3">Owner</td>
+          <td className="px-6 py-3">Mint</td>
+          <td className="px-6 py-3 text-center">Change</td>
+          <td className="px-6 py-3 text-center">Post Balance</td>
+        </tr>
+      </thead>
+    );
+    const rows = preTokenBalances.map((account, i) => {
+      const post = postTokenBalances[i];
+      const tokenChange = (post?.uiTokenAmount.uiAmount ?? 0) - (account.uiTokenAmount.uiAmount ?? 0);
+      return (
+        <tr key={i + 1} className="bg-white border-b bg-zinc-800 dark:border-zinc-700">
+          <td className="px-6 py-3">{i + 1}</td>
+          <td className="px-6 py-3">{account.owner}</td>
+          <td className="px-6 py-3">{account.mint}</td>
+          <td className="px-6 py-3 text-center">
+            {tokenChange === 0 ? '-' : tokenChange.toFixed(2)}
+          </td>
+          <td className="px-6 py-3 text-center">
+            {post?.uiTokenAmount.uiAmount != null ? post.uiTokenAmount.uiAmount.toFixed(2) : '-'}
+          </td>
+        </tr>
+      );
+    });
+    return (
+      <table className="w-full text-sm text-left text-gray-500 dark:text-gray-400">
+        {header}
+        <tbody>{rows}</tbody>
+      </table>
+    );
+  }
+
+  function buildProgramsTable() {
+    if (!transactionDetail) return null;
+    const instructions = transactionDetail.transaction.message.instructions;
+    const header = (
+      <thead className="text-xs text-gray-700 uppercase bg-zinc-50 dark:bg-gray-700 dark:text-gray-400">
+        <tr>
+          <td className="px-6 py-3">#</td>
+          <td className="px-6 py-3">Program</td>
+        </tr>
+      </thead>
+    );
+    const rows = instructions.map((instruction, i) => (
+      <tr key={i + 1} className="bg-white border-b bg-zinc-800 dark:border-zinc-700">
+        <td className="px-6 py-3">{i + 1}</td>
+        <td className="px-6 py-3">{instruction.programId.toString()}</td>
+      </tr>
+    ));
+    return (
+      <table className="w-full text-sm text-left text-gray-500 dark:text-gray-400">
+        {header}
+        <tbody>{rows}</tbody>
+      </table>
+    );
+  }
+
+  return (
+    <div>
+      <div>{transactionCard}</div>
+    </div>
+  );
+};
+```
+
+**Summary of behavior:**
+
+- **router.query.txid** — Transaction ID from the URL (e.g. `/tx/abc123` → `txid = "abc123"`).
+- **getTransaction** — Fetches parsed transaction with `connection.getParsedTransaction(txid, { maxSupportedTransactionVersion: 0 })`.
+- **buildOverviewTable** — Signature, timestamp, status (Success/Failed).
+- **buildAccountsTable** — Account keys, SOL balance change, post-balance (using `LAMPORTS_PER_SOL`).
+- **buildTokensTable** — Owner, mint, token balance change, post balance from `preTokenBalances` / `postTokenBalances`.
+- **buildProgramsTable** — Program IDs from `transaction.message.instructions`.
+
+---
+
+<ArticleSection name="Create a Transaction View and Page" id="transaction-view-page" level="h2" />
+
+To show this component we add a **Transaction view** and a **dynamic page** for `/tx/[txid]`.
+
+### Create the Transaction view
+
+Create `./src/views/explorer/tx.tsx`:
+
+```ts
+import { FC } from "react";
+import { TransactionDetail } from "components/TransactionDetail";
+
+export const TransactionView: FC = () => {
+  return (
+    <div className="md:hero mx-auto p-4">
+      <div className="md:hero-content flex flex-col">
+        <h1 className="text-center text-5xl font-bold text-transparent bg-clip-text bg-gradient-to-tr from-[#9945FF] to-[#14F195]">
+          Quick View Explorer
+        </h1>
+        <div className="text-center">
+          <TransactionDetail />
+        </div>
+      </div>
+    </div>
+  );
+};
+```
+
+This view wraps the **TransactionDetail** component with the same hero layout as the Explorer.
+
+### Create the dynamic Transaction page
+
+The page uses a **dynamic segment** `[txid]` so URLs like `/tx/TRANSACTION_ID` work.
+
+Create the directory and file:
+
+```bash
+mkdir -p ./src/pages/tx
+```
+
+Create `./src/pages/tx/[txid].tsx` (the brackets make it dynamic in Next.js):
+
+```ts
+import Head from "next/head";
+import { TransactionView } from "views/explorer/tx";
+
+const Tx = () => {
+  return (
+    <div>
+      <Head>
+        <title>Solana Scaffold</title>
+        <meta name="description" content="Basic Functionality" />
+      </Head>
+      <TransactionView />
+    </div>
+  );
+};
+
+export default Tx;
+```
+
+This page is served at **/tx/YOUR_TRANSACTION_ID**.
+
+---
+
+<ArticleSection name="Link from Transaction History" id="link-it-up" level="h2" />
+
+So users can open the detail page by clicking a signature, link each transaction signature in the history table to `/tx/TRANSACTION_ID`.
+
+In `./src/components/TransactionsLog.tsx`, find where you render the transaction signature (the first cell of each row) and wrap it in a link:
+
+**Before:**
+
+```ts
+<td className="px-6 py-3">
+  {transaction.transaction.signatures[0]}
+</td>
+```
+
+**After:**
+
+```ts
+<td className="px-6 py-3">
+  <a href={'/tx/' + transaction.transaction.signatures[0]}>
+    {transaction.transaction.signatures[0]}
+  </a>
+</td>
+```
+
+Use `/tx/...` (or your app’s base path) so the link works regardless of whether the user is on `/explorer` or another route.
+
+### Add Explorer to navigation
+
+- In **ContentContainer** (e.g. sidebar), add a nav item for Explorer:
+
+```ts
+<li>
+  <NavElement label="Explorer" href="/explorer" />
+</li>
+```
+
+- In **AppBar**, add an Explorer link (e.g. where other nav items are):
+
+```ts
+<NavElement
+  label="Explorer"
+  href="/explorer"
+  navigationStarts={() => setIsNavOpen(false)}
+/>
+```
+
+---
+
+<ArticleSection name="Summary and Run" id="summary" level="h2" />
+
+**New/updated files:**
+
+- **./src/components/TransactionDetail.tsx** — Fetches one transaction by ID and renders Overview, Accounts, Token changes, and Programs tables.
+- **./src/views/explorer/tx.tsx** — Transaction detail view.
+- **./src/pages/tx/[txid].tsx** — Dynamic page for `/tx/TRANSACTION_ID`.
+- **./src/components/TransactionsLog.tsx** — Signature column updated to link to `/tx/SIGNATURE`.
+- **./src/components/ContentContainer.tsx** and **AppBar** — Explorer link added.
+
+Run the app:
+
+```bash
+yarn dev
+```
+
+Open **http://localhost:3000/explorer**, click a transaction signature, and you should be taken to **http://localhost:3000/tx/YOUR_TRANSACTION_ID** with the full transaction detail.
+
+---
+
+<ArticleSection name="Conclusion" id="conclusion" level="h2" />
+
+You’ve added **transaction details** to your Solana Explorer clone using **dynamic routes**. You can extend the UI (e.g. styling, extra fields from the parsed transaction) or reuse the same patterns for other on-chain data. Small tweaks to these components can give you a lot of flexibility for explorer-style UIs.

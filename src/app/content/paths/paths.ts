@@ -75,6 +75,8 @@ export const paths: PathMetadata[] = [
     estimatedHours: 15,
     steps: [
       { type: "course", slug: "introduction-to-blockchain-and-solana" },
+      { type: "course", slug: "create-evm-dapp-with-wagmi-and-rainbowkit" },
+      { type: "course", slug: "build-a-solana-explorer" },
       { type: "course", slug: "tokens-on-solana" },
       { type: "course", slug: "spl-token-with-web3js" },
       { type: "course", slug: "token-2022-with-web3js" },

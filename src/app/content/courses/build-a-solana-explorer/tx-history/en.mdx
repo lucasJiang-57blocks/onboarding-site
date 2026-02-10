@@ -1,0 +1,332 @@
+import { ArticleSection } from "../../../../components/ArticleSection/ArticleSection";
+
+# How to Build a Solana Explorer Clone (Part 1 — Transaction History)
+
+<ArticleSection name="Overview" id="overview" level="h2" />
+
+**Solana Explorer** provides access to a wealth of information on the Solana blockchain: transaction history and details, token balances, NFT metadata, and more. Browsing Solana Explorer is one of the best ways to understand Solana—building a clone takes your knowledge to the next level. In this 3-part series, we'll cover the steps to build a simple Solana Explorer clone.
+
+In Part 1, we focus on **transactions**. If you're building a dApp, you'll often want to show transaction history. Example use cases:
+
+- An **NFT platform** may show a user the sales history of an NFT
+- A **DAO** may show voting result history
+- An **exchange** may show a user's buy/sell history
+- A **non-profit** may track donation logs
+
+---
+
+<ArticleSection name="What You Will Do" id="what-you-will-do" level="h2" />
+
+You will use the **Solana Scaffold** and **Wallet Adapter** to create a Solana Explorer–style framework, then build a simple web app that fetches transaction history for a wallet and displays it on your site.
+
+---
+
+<ArticleSection name="What You Will Need" id="what-you-will-need" level="h2" />
+
+- **Node.js** (v16.15 or higher)
+- **TypeScript** experience and **ts-node** installed
+- Basic **HTML/CSS** knowledge
+- Experience with **Solana transactions** (see: [How to Track Solana Transaction History with Logs](https://www.quicknode.com/guides/solana-development/how-to-track-solana-transaction-history-with-logs))
+
+You should have completed the guide **How to Connect Users to Your dApp with the Solana Wallet Adapter and Scaffold**, and have done the following:
+
+1. Installed and launched the Solana Scaffold from your project directory
+2. Updated your RPC endpoint
+3. Created `template.tsx` in `./src/components/` (we'll use this as our starting point)
+
+The final code from that guide will be the starting point here. You should have it in a local editor with `localhost:3000` rendering the scaffold UI.
+
+---
+
+<ArticleSection name="Set Up Your Environment" id="set-up-environment" level="h2" />
+
+Upgrade the scaffold to the latest **Solana Web3.js** (v1). From the project directory:
+
+```bash
+npm update @solana/web3.js@1
+# or
+yarn upgrade @solana/web3.js@1
+```
+
+---
+
+<ArticleSection name="Create a Transaction Log Component" id="transaction-log-component" level="h2" />
+
+### Create the file
+
+From your project directory, copy the template and name it `TransactionsLog.tsx`:
+
+```bash
+cp ./src/components/template.tsx ./src/components/TransactionsLog.tsx
+```
+
+Open `TransactionsLog.tsx` in your editor.
+
+### Update dependencies and component name
+
+1. Rename the component from `Template` to `TransactionLog`:
+
+Replace:
+
+```ts
+export const Template: FC = () => {
+```
+
+with:
+
+```ts
+export const TransactionLog: FC = () => {
+```
+
+2. Replace the existing imports with:
+
+```ts
+import { useConnection, useWallet } from '@solana/wallet-adapter-react';
+import { PublicKey, ParsedTransactionWithMeta } from '@solana/web3.js';
+import { FC, useEffect, useState } from 'react';
+import { notify } from "../utils/notifications";
+```
+
+### Create state variables
+
+Inside the `TransactionLog` component, add:
+
+- **transactionHistory** — store the parsed transaction results from the Solana query
+- **transactionTable** — store the JSX for the table we'll render
+
+```ts
+const { connection } = useConnection();
+const { publicKey } = useWallet();
+const [transactionHistory, setTransactionHistory] = useState<ParsedTransactionWithMeta[] | null>(null);
+const [transactionTable, setTransactionTable] = useState<JSX.Element | null>(null);
+```
+
+### Create the Solana query
+
+Add a `getTransactions` function that fetches parsed transactions for a wallet and updates `transactionHistory`:
+
+```ts
+async function getTransactions(address: string, numTx: number) {
+  const pubKey = new PublicKey(address);
+  const transactionList = await connection.getSignaturesForAddress(pubKey, { limit: numTx });
+  const signatureList = transactionList.map((tx) => tx.signature);
+  const transactionDetails = await connection.getParsedTransactions(signatureList, {
+    maxSupportedTransactionVersion: 0,
+  });
+  setTransactionHistory(transactionDetails);
+}
+```
+
+For more on fetching transaction logs, see the guide [How to Track Solana Transaction History with Logs](https://www.quicknode.com/guides/solana-development/how-to-track-solana-transaction-history-with-logs).
+
+### Build the table UI
+
+Add `buildTransactionTable` after `getTransactions`. It turns `transactionHistory` into a table (you can adjust styling and columns to your needs):
+
+```ts
+function buildTransactionTable() {
+  if (transactionHistory && transactionHistory.length !== 0) {
+    const header = (
+      <thead className="text-xs text-gray-700 uppercase bg-zinc-50 dark:bg-gray-700 dark:text-gray-400">
+        <tr>
+          <th className="px-6 py-3">Transaction Signature</th>
+          <th className="px-6 py-3">Slot</th>
+          <th className="px-6 py-3">Date</th>
+          <th className="px-6 py-3">Result</th>
+        </tr>
+      </thead>
+    );
+    const rows = transactionHistory.map((transaction, i) => {
+      const date = new Date((transaction.blockTime ?? 0) * 1000).toLocaleDateString();
+      return (
+        <tr key={i + 1} className="bg-white border-b bg-zinc-800 dark:border-zinc-700">
+          <td className="px-6 py-3">
+            {transaction.transaction.signatures[0]}
+          </td>
+          <td className="px-6 py-3">{transaction.slot.toLocaleString("en-US")}</td>
+          <td className="px-6 py-3">{date}</td>
+          <td className="px-6 py-3">{transaction.meta?.err ? "Failed" : "Success"}</td>
+        </tr>
+      );
+    });
+    setTransactionTable(
+      <table className="w-full text-sm text-left text-gray-500 dark:text-gray-400">
+        {header}
+        <tbody>{rows}</tbody>
+      </table>
+    );
+  } else {
+    setTransactionTable(null);
+  }
+}
+```
+
+**Notes:**
+
+- We only build the table when `transactionHistory` exists and has at least one entry.
+- **header** defines the column labels; **rows** map each transaction to a `<tr>` with signature, slot, date, and result (Success/Failed).
+- `transactionTable` state holds the full `<table>` element.
+
+### Trigger query and table rendering
+
+Add a `useEffect` that calls `buildTransactionTable` when we have a wallet and transaction data. Place it below the state declarations and above `getTransactions`:
+
+```ts
+useEffect(() => {
+  if (publicKey && transactionHistory) {
+    buildTransactionTable();
+  }
+}, [publicKey, connection, transactionHistory]);
+```
+
+Add an `onClick` handler to run the search (e.g. after `buildTransactionTable`):
+
+```ts
+const onClick = async () => {
+  if (!publicKey) {
+    notify({ type: "error", message: "error", description: "Wallet not connected!" });
+    return;
+  }
+  try {
+    await getTransactions(publicKey.toString(), 15);
+  } catch (error: unknown) {
+    const msg = error instanceof Error ? error.message : "Unknown error";
+    notify({ type: "error", message: "Couldn't Find Transactions!", description: msg });
+  }
+};
+```
+
+Here we fetch 15 transactions; you can change that number as needed.
+
+### Update the return statement
+
+Render a button that calls `onClick` and a div that shows the table:
+
+```ts
+return (
+  <div>
+    <div className="text-center">
+      <button
+        className="px-8 m-2 btn animate-pulse bg-gradient-to-r from-[#9945FF] to-[#14F195] center hover:from-pink-500 hover:to-yellow-500 ..."
+        onClick={onClick}
+      >
+        <span>Get Transactions</span>
+      </button>
+    </div>
+    <div>{transactionTable}</div>
+  </div>
+);
+```
+
+---
+
+<ArticleSection name="Create an Explorer View and Page" id="explorer-view-page" level="h2" />
+
+To show the component in the app, we need an **Explorer view** and an **Explorer page**.
+
+### Create the Explorer view
+
+From the project root:
+
+```bash
+mkdir -p ./src/views/explorer
+```
+
+Create `./src/views/explorer/index.tsx` with:
+
+```ts
+import { FC, useEffect } from "react";
+import { useWallet, useConnection } from "@solana/wallet-adapter-react";
+import useUserSOLBalanceStore from "../../stores/useUserSOLBalanceStore";
+import { TransactionLog } from "../../components/TransactionsLog";
+
+export const ExplorerView: FC = () => {
+  const wallet = useWallet();
+  const { connection } = useConnection();
+  const balance = useUserSOLBalanceStore((s) => s.balance);
+  const { getUserSOLBalance } = useUserSOLBalanceStore();
+
+  useEffect(() => {
+    if (wallet.publicKey) {
+      getUserSOLBalance(wallet.publicKey, connection);
+    }
+  }, [wallet.publicKey, connection, getUserSOLBalance]);
+
+  return (
+    <div className="md:hero mx-auto p-4">
+      <div className="md:hero-content flex flex-col">
+        <h1 className="text-center text-5xl font-bold text-transparent bg-clip-text bg-gradient-to-tr from-[#9945FF] to-[#14F195]">
+          Quick View Explorer
+        </h1>
+        <div className="text-center">
+          {wallet?.publicKey && <p>Connected to: {wallet.publicKey.toString()}</p>}
+          {wallet && <p>SOL Balance: {(balance ?? 0).toLocaleString()}</p>}
+        </div>
+        <div className="text-center">
+          <TransactionLog />
+        </div>
+      </div>
+    </div>
+  );
+};
+```
+
+This view reuses patterns from `./src/views/home/index.tsx` (e.g. wallet balance) and renders `<TransactionLog />`. If you have a Get Token Accounts component, you can import and add `<GetTokens />` here as well.
+
+Export the view from `./src/views/index.tsx`:
+
+```ts
+export { ExplorerView } from "./explorer";
+```
+
+### Create the Explorer page
+
+Create `./src/pages/explorer.tsx`:
+
+```ts
+import type { NextPage } from "next";
+import Head from "next/head";
+import { ExplorerView } from "../views";
+
+const Explorer: NextPage = () => {
+  return (
+    <div>
+      <Head>
+        <title>Solana Scaffold</title>
+        <meta name="description" content="Basic Functionality" />
+      </Head>
+      <ExplorerView />
+    </div>
+  );
+};
+
+export default Explorer;
+```
+
+This page is served at **/explorer**.
+
+---
+
+<ArticleSection name="Summary of New Files" id="summary" level="h2" />
+
+You should have:
+
+- **./src/components/TransactionsLog.tsx** — Component that queries Solana and renders the transaction table
+- **./src/views/explorer/index.tsx** — View that hosts the transaction log (and optionally other components)
+- **./src/pages/explorer.tsx** — Page that renders the view at `/explorer`
+
+### Run and test
+
+```bash
+npm run dev
+# or
+yarn dev
+```
+
+Open **http://localhost:3000/explorer**. You should see the Explorer view with a "Get Transactions" button; after connecting a wallet and clicking it, the transaction table should appear.
+
+---
+
+<ArticleSection name="Conclusion" id="conclusion" level="h2" />
+
+You've built a dApp that queries a user's wallet, fetches their transaction history, and displays it in a table. In the next part of this series, we'll go deeper into individual transaction details.
