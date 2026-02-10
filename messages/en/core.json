@@ -63,7 +63,7 @@
     "empty_title": "No paths found",
     "empty_description": "Try changing your filters to see learning paths here.",
     "web3-fullstack-beginner": {
-      "title": "Web3 Fullstack Beginner",
+      "title": "Fullstack Web3 Beginner",
       "description": "Learn the basics of Web3 and blockchain development with Solana."
     },
     "solana-developer-foundations": {
@@ -78,8 +78,8 @@
       "title": "Native Rust Developer",
       "description": "Build high-performance Solana programs using native Rust and Pinocchio with advanced testing."
     },
-    "beckend-web3-beginner": {
-      "title": "Beckend Web3 Beginner",
+    "backend-web3-beginner": {
+      "title": "Backend Web3 Beginner",
       "description": "Learn how to build web3 backend services with Node.js and Express."
     },
     "frontend-dapp-beginner": {

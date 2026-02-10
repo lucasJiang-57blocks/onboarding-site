@@ -83,7 +83,7 @@ export const paths: PathMetadata[] = [
     ],
   },
   {
-    slug: "beckend-web3-beginner",
+    slug: "backend-web3-beginner",
     language: "General",
     color: BRAND_COLOURS.general,
     difficulty: 1,
