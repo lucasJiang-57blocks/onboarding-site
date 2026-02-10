@@ -1,8 +1,8 @@
 {
   "metadata": {
-    "title": "Blueshift",
+    "title": "57Blocks",
     "description": "Pelajari menulis program on-chain Anda sendiri dari para instruktur terbaik di ekosistem Solana.",
-    "keywords": "Solana, Blueshift, belajar, kualifikasi, brankas, escrow, AMM, native, pinocchio, quantum, token SPL"
+    "keywords": "Solana, 57Blocks, belajar, kualifikasi, brankas, escrow, AMM, native, pinocchio, quantum, token SPL"
   },
   "header": {
     "lessons": "Pelajaran",
@@ -73,9 +73,9 @@
       "title": "Native Rust Developer",
       "description": "Build high-performance Solana programs using native Rust and Pinocchio with advanced testing."
     },
-    "typescript-client-developer": {
-      "title": "TypeScript Client Developer",
-      "description": "Learn to build Solana client applications using TypeScript and web3.js."
+    "frontend-dapp-beginner": {
+      "title": "Frontend dApp Beginner",
+      "description": "Learn how to build your own on-chain programs from the top instructors in the Solana ecosystem."
     },
     "security-specialist": {
       "title": "Security Specialist",

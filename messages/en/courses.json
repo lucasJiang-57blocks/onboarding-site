@@ -1,5 +1,32 @@
 {
   "courses": {
+    "your-first-solana-fullstack-dapp": {
+      "title": "Your First Solana Fullstack Dapp",
+      "description": "Learn how to build your first Solana fullstack dapp with React, Anchor, Rust, and Phantom.",
+      "lessons": {
+        "introduction": "Introduction",
+        "understanding-solana": "Understanding Solana",
+        "set-up-environment": "Setup Environment",
+        "building-your-first-solana-program": "Building Your First Solana Program",
+        "integrating-with-the-frontend": "Integrating with the Frontend",
+        "testing-and-deployment": "Testing and Deployment"
+      }
+    },
+    "solana-bootcamp": {
+      "title": "Solana Bootcamp",
+      "description": "Learn the basics of Solana and the Solana blockchain.",
+      "lessons": {
+        "introduction": "Introduction",
+        "blockchain-solana-basics": "Blockchain & Solana Basics",
+        "solana's-tokens-and-NFTs": "Solana's Tokens and NFTs",
+        "solana-program-development": "Intro to Solana Program Development: A Simple On-Chain Data Storage Program",
+        "tradeable-token-program": "Build a Tradeable Token Program from Simple On-Chain Storage",
+        "solana-development-with-ai": "Unlock a new paradigm for efficient Solana development with AI Vibe Coding",
+        "anchor-basics-spl-token-2022": "Anchor Basics: SPL & Token 2022",
+        "on-chain-analysis-arbitrage": "On-Chain Analysis & Arbitrage + Solana Testing Tools",
+        "solana-program-security": "Improve UX with Session Keys & Solana Program Security"
+      }
+    },
     "introduction-to-uniswap": {
       "title": "Introduction to Uniswap V2",
       "description": "Learn the basics of Uniswap V2 and the Uniswap V2 contract.",

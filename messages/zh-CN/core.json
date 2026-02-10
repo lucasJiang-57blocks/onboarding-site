@@ -1,8 +1,8 @@
 {
   "metadata": {
-    "title": "Blueshift",
+    "title": "57Blocks",
     "description": "从 Solana 生态系统顶级讲师那里学习如何编写你自己的链上程序。",
-    "keywords": "Solana, Blueshift, 学习, 资格认证, 金库, 托管, AMM, 原生, pinocchio, 量子, SPL 代币"
+    "keywords": "Solana, 57Blocks, 学习, 资格认证, 金库, 托管, AMM, 原生, pinocchio, 量子, SPL 代币"
   },
   "header": {
     "lessons": "课程",
@@ -73,9 +73,9 @@
       "title": "Native Rust Developer",
       "description": "Build high-performance Solana programs using native Rust and Pinocchio with advanced testing."
     },
-    "typescript-client-developer": {
-      "title": "TypeScript Client Developer",
-      "description": "Learn to build Solana client applications using TypeScript and web3.js."
+    "frontend-dapp-beginner": {
+      "title": "前端 dApp Beginner",
+      "description": "学习 web3 前端dApp开发的入门知识。"
     },
     "security-specialist": {
       "title": "Security Specialist",

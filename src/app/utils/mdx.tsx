@@ -8,6 +8,7 @@ import { Icon } from "@blueshift-gg/ui-components";
 import IDE from "@/app/components/TSChallengeEnv/IDE";
 import { Requirement } from "@/app/components/Challenges/Requirement";
 import { RequirementList } from "@/app/components/Challenges/RequirementList";
+import Video from "@/app/components/Video/Video";
 import { SafeMdxRenderer } from "safe-mdx";
 import { mdxParse } from "safe-mdx/parse";
 import { getSingletonHighlighter } from "@/lib/shiki/highlighter";
@@ -99,6 +100,7 @@ export async function renderSafeMdx(compiled: CompiledMDX) {
         Requirement,
         AnchorDiscriminatorCalculator,
         MathFormula,
+        Video,
         blockquote: ({ children }: { children: React.ReactNode }) => (
           <blockquote className="bg-brand-primary/5 flex items-start gap-x-2 py-4 px-6">
             <Icon

@@ -1,0 +1,38 @@
+import { ArticleSection } from "../../../../components/ArticleSection/ArticleSection";
+
+<ArticleSection name="Section 1: Understanding Solana" id="understanding-solana" level="h2" />
+
+Solana is a high-performance blockchain platform known for its scalability and speed, largely due to a unique consensus mechanism called **Proof of History (PoH)**. Unlike traditional consensus mechanisms such as Proof of Work (PoW) used in Bitcoin or Proof of Stake (PoS) used in many other blockchains, PoH is a new approach to recording the order of events and confirming transactions.
+
+### Proof of History (PoH)
+
+PoH is not a standalone consensus mechanism, but rather works alongside PoS in Solana to improve its efficiency. It uses a cryptographic timestamp to create a verifiable sequence of events, allowing validators to agree on the timing and order of transactions without the need for extensive communication between them. This is achieved by creating a hash chain in which each hash is a function of the previous one, effectively acting as a decentralized clock.
+
+**Benefits of PoH:**
+
+- **Scalability:** By efficiently organizing transactions and reducing the need for validators to communicate to verify the order of events, PoH allows Solana to process thousands of transactions per second.
+- **Low Latency:** Transactions are processed quickly due to a simplified verification process, improving the usability of dApps and services running on Solana.
+- **Security:** The cryptographic nature of PoH combined with the PoS consensus in Solana keeps the network safe from attacks.
+- **Energy Efficiency:** PoH is greener than PoW as it does not require energy-intensive mining activities.
+
+### Solana Architecture
+
+The Solana architecture is designed to maximize throughput and minimize transaction confirmation time. This is achieved through several innovative technologies, including the **Gulf Stream** protocol for transaction forwarding, **Sealevel** for parallel processing of smart contracts, and **Turbine** for block propagation. Together with PoH, these technologies enable Solana to achieve unprecedented speed and scalability among blockchain networks.
+
+### Key Concepts in Solana Development
+
+Solana development revolves around three critical concepts: **accounts**, **programs**, and **transactions**.
+
+**Accounts**
+
+Accounts are storage locations on the Solana blockchain that can hold data, SOL (Solana's native currency), or smart contract code. Each account has a public key that serves as its unique identifier. Accounts can be of different types, including user wallets, program accounts (containing executable code), and data storage accounts. Solana's account model requires that accounts have enough SOL to cover the "rent" or data storage costs.
+
+**Programs**
+
+In Solana, programs are synonymous with smart contracts on other blockchains, but they are designed to be more flexible and efficient. Programs are stateless, meaning they do not store any state themselves. Instead, all state is stored in the accounts with which the programs interact. Solana programs are unique in that they can be updated, and they can interact with other programs through **cross-program invocations (CPI)**, which enables composability in the Solana ecosystem.
+
+**Transactions**
+
+Transactions in Solana are the means by which users interact with programs. A transaction contains one or more instructions that tell a program what to do, such as transfer SOL, change account data, or invoke program logic. Each transaction is signed with one or more private keys, confirming that the initiator has the authority to perform the specified actions. If any part of the transaction fails, the entire transaction is canceled, ensuring atomicity.
+
+---

@@ -1,0 +1,146 @@
+import { ArticleSection } from "../../../../components/ArticleSection/ArticleSection";
+
+<ArticleSection name="Section 3: Building Your First Solana Program" id="building-program" level="h2" />
+
+**Prerequisites:**
+1. Basic understanding of programming in the Rust language.
+2. Solana CLI and Rust are installed on your computer.
+
+### Step 1: Create a New Project with Anchor
+
+1. **Install Anchor** (if not already installed):
+
+```bash
+cargo install --git https://github.com/project-serum/anchor anchor-cli --locked
+```
+
+2. **Initialize a new Anchor project:**
+
+```bash
+anchor init my_solana_dapp --javascript
+```
+
+The `--javascript` flag sets up a project with JavaScript examples for frontend integration. Notice the `programs/` directory where your Rust programs will live, and the `tests/` directory for your program tests.
+
+3. **Navigate to the project directory:**
+
+```bash
+cd my_solana_dapp
+```
+
+### Step 2: Writing the Program Logic
+
+Open the `lib.rs` file located at `programs/my_solana_dapp/src/lib.rs`. Replace the contents (after `declare_id!`) with the following Rust code:
+
+```rust
+#[program]
+pub mod my_solana_dapp {
+    use super::*;
+    pub fn create_greeting(ctx: Context<CreateGreeting>) -> Result<()> {
+        let greeting_account = &mut ctx.accounts.greeting_account;
+        greeting_account.counter = 0;
+        Ok(())
+    }
+
+    pub fn increment_greeting(ctx: Context<IncrementGreeting>) -> Result<()> {
+        let greeting_account = &mut ctx.accounts.greeting_account;
+        greeting_account.counter += 1;
+        Ok(())
+    }
+}
+
+#[derive(Accounts)]
+pub struct CreateGreeting<'info> {
+    #[account(init, payer = user, space = 8 + 8)]
+    pub greeting_account: Account<'info, GreetingAccount>,
+    #[account(mut)]
+    pub user: Signer<'info>,
+    pub system_program: Program<'info, System>,
+}
+
+#[derive(Accounts)]
+pub struct IncrementGreeting<'info> {
+    #[account(mut)]
+    pub greeting_account: Account<'info, GreetingAccount>,
+}
+
+#[account]
+pub struct GreetingAccount {
+    pub counter: u64,
+}
+```
+
+### Understanding the Code
+
+**Program Declaration:**
+- `#[program]` marks the `my_solana_dapp` module as containing smart contract entry points.
+
+**Functions:**
+- `create_greeting` — Initializes a new greeting account with the counter set to `0`.
+- `increment_greeting` — Increments the counter in the specified greeting account by `1`.
+
+**Account Structures:**
+- `CreateGreeting` — Defines the accounts needed: a new `greeting_account` to be created, the `user` who pays and signs, and a reference to the `system_program`.
+- `IncrementGreeting` — Defines the account needed: the `greeting_account` whose counter will be incremented.
+- `GreetingAccount` — The data structure containing a single `counter: u64` field.
+
+**Key Concepts:**
+- **Account Initialization:** The `#[account(init, payer = user, space = 8 + 8)]` attribute specifies that the account should be initialized, the user pays for creation, and the space allocated is 8 bytes (Anchor discriminator) + 8 bytes (`u64` counter).
+- **Signers and Permissions:** The `user` is tagged with `#[account(mut)]` indicating they sign the transaction and their account can be modified.
+- **State Management:** State (`counter`) is stored in an account (`GreetingAccount`) and modified via program functions.
+
+### Step 3: Building the Program
+
+1. **Build the project:**
+
+```bash
+anchor build
+```
+
+This compiles your Rust program into BPF bytecode that can be deployed on the Solana blockchain.
+
+2. **Find your program ID:**
+
+```bash
+solana address -k target/deploy/my_solana_dapp-keypair.json
+```
+
+### Deploying to the Local Network
+
+1. **Start the test validator** (if not already running):
+
+```bash
+solana-test-validator
+```
+
+2. **Configure CLI for local network:**
+
+```bash
+solana config set --url localhost
+```
+
+3. **Deploy the program:**
+
+```bash
+anchor deploy
+```
+
+After successful deployment, Anchor will display the program ID and update your `Anchor.toml` and JavaScript files.
+
+4. **Verify deployment:**
+
+```bash
+solana program show <PROGRAM_ID>
+```
+
+Example output:
+
+```
+Program Id: CC3EongBFU71ru4LRdUe3wNg5ULLLnCnJLhRhbUcP93o
+Owner: BPFLoaderUpgradeab1e11111111111111111111111
+ProgramData Address: 6nnAVBvmJHJyN4keECcZDswfF6zzeLAEs2qZGWMcuhFj
+Authority: 9HGR7nJ2VQ4T23SyHA7BhqrShj9MokwNKdgTh1en61fC
+Last Deployed In Slot: 8777
+Data Length: 200840 (0x31088) bytes
+Balance: 1.39905048 SOL
+```

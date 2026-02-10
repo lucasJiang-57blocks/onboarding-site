@@ -1,0 +1,41 @@
+import { ArticleSection } from "../../../../components/ArticleSection/ArticleSection";
+
+<ArticleSection name="Section 2: Setting Up the Development Environment" id="dev-environment" level="h2" />
+
+### Installing Solana CLI Tools
+
+You can install the Solana CLI tools by following the [official guide](https://docs.solana.com/cli/install-solana-cli-tools).
+
+### Setting Up the Local Solana Blockchain (Test Validator)
+
+1. Start the local test validator:
+
+```bash
+solana-test-validator
+```
+
+2. Configure the Solana CLI to use the local cluster:
+
+```bash
+solana config set --url localhost
+```
+
+3. Create a file system wallet:
+
+```bash
+solana-keygen new --outfile /path/to/save/your/program-keypair.json
+# Example:
+# solana-keygen new -o /Users/user/.config/solana/id.json
+```
+
+4. Airdrop SOL tokens to your wallet:
+
+```bash
+solana airdrop 2
+```
+
+### Why Anchor?
+
+The **Anchor framework** simplifies the development of Solana smart contracts by providing a layer of abstraction above the core Solana development kit. It offers tools and a runtime environment to efficiently build, test, and deploy programs on the Solana blockchain. Anchor is designed to reduce boilerplate code and introduce familiar programming patterns, making Solana more accessible to developers familiar with other smart contract platforms.
+
+---

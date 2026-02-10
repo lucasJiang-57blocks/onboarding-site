@@ -1,8 +1,8 @@
 {
   "metadata": {
-    "title": "Blueshift",
+    "title": "57Blocks",
     "description": "Học cách viết các chương trình on-chain của riêng bạn từ những giảng viên hàng đầu trong hệ sinh thái Solana.",
-    "keywords": "Solana, Blueshift, học tập, chứng chỉ, vault, escrow, AMM, native, pinocchio, quantum, SPL token"
+    "keywords": "Solana, 57Blocks, học tập, chứng chỉ, vault, escrow, AMM, native, pinocchio, quantum, SPL token"
   },
   "header": {
     "lessons": "Bài học",
@@ -74,9 +74,9 @@
       "title": "Lập trình Rust gốc",
       "description": "Xây dựng các chương trình Solana hiệu suất cao bằng Rust gốc và Pinocchio với các bài kiểm thử nâng cao."
     },
-    "typescript-client-developer": {
-      "title": "Lập trình client với TypeScript",
-      "description": "Học cách xây dựng ứng dụng client Solana sử dụng TypeScript và web3.js."
+    "frontend-dapp-beginner": {
+      "title": "Frontend dApp Beginner",
+      "description": "Học cách xây dựng các chương trình on-chain của riêng bạn từ những giảng viên hàng đầu trong hệ sinh thái Solana."
     },
     "security-specialist": {
       "title": "Chuyên gia bảo mật",

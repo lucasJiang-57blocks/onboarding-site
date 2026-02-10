@@ -1,0 +1,185 @@
+import { ArticleSection } from "../../../../components/ArticleSection/ArticleSection";
+
+<ArticleSection name="Section 4: Integrating with the Frontend" id="frontend-integration" level="h2" />
+
+### Setting Up a React Application
+
+Delete the existing `/app` directory and create a new React app:
+
+```bash
+npx create-react-app app
+cd app/
+npm install @solana/web3.js @project-serum/anchor @solana/wallet-adapter-react \
+  @solana/wallet-adapter-react-ui @solana/wallet-adapter-wallets \
+  @solana/wallet-adapter-base @solana/wallet-adapter-phantom
+```
+
+**Prerequisites:**
+- Node.js installed
+- Navigate to the `app/` directory of your project
+
+### Phantom Wallet Integration
+
+Use the `@solana/wallet-adapter-react` libraries to connect to Phantom. This should already be part of your setup if you initialized the project with Anchor.
+
+### Modifying the Frontend
+
+Modify `app/src/App.js` to connect to the Solana program and send transactions. First, move the generated IDL file from `target/idl/` to `src/` in your app directory.
+
+**`App.js`:**
+
+```javascript
+import { useState } from "react";
+import { useAnchorWallet } from "@solana/wallet-adapter-react";
+import { Connection, PublicKey, SystemProgram, Keypair } from "@solana/web3.js";
+import { Program, AnchorProvider } from "@project-serum/anchor";
+import { useWallet } from "@solana/wallet-adapter-react";
+import {
+  WalletMultiButton,
+  WalletDisconnectButton,
+} from "@solana/wallet-adapter-react-ui";
+import idl from "./my_solana_dapp.json";
+
+const programID = new PublicKey(idl.metadata.address);
+const network = "http://127.0.0.1:8899";
+const opts = { preflightCommitment: "processed" };
+
+const App = () => {
+  const wallet = useAnchorWallet();
+  const { connected } = useWallet();
+  const [greetingAccountPublicKey, setGreetingAccountPublicKey] =
+    useState(null);
+  const [error, setError] = useState("");
+
+  const getProvider = () => {
+    if (!wallet) return null;
+    const connection = new Connection(network, opts.preflightCommitment);
+    return new AnchorProvider(connection, wallet, opts.preflightCommitment);
+  };
+
+  const createGreeting = async () => {
+    setError("");
+    if (!connected) {
+      setError("Wallet is not connected.");
+      return;
+    }
+    const provider = getProvider();
+    if (!provider) {
+      setError("Provider is not available.");
+      return;
+    }
+    const program = new Program(idl, programID, provider);
+    try {
+      const greetingAccount = Keypair.generate();
+      await program.rpc.createGreeting({
+        accounts: {
+          greetingAccount: greetingAccount.publicKey,
+          user: provider.wallet.publicKey,
+          systemProgram: SystemProgram.programId,
+        },
+        signers: [greetingAccount],
+      });
+      console.log("Greeting account created!");
+      setGreetingAccountPublicKey(greetingAccount.publicKey.toString());
+    } catch (err) {
+      console.error("Error creating greeting account:", err);
+      setError("Failed to create greeting account. Please try again.");
+    }
+  };
+
+  const incrementGreeting = async () => {
+    setError("");
+    if (!connected) {
+      setError("Wallet is not connected.");
+      return;
+    }
+    if (!greetingAccountPublicKey) {
+      setError("Greeting account not created or public key not set.");
+      return;
+    }
+    const provider = getProvider();
+    if (!provider) {
+      setError("Provider is not available.");
+      return;
+    }
+    const program = new Program(idl, programID, provider);
+    try {
+      await program.rpc.incrementGreeting({
+        accounts: {
+          greetingAccount: new PublicKey(greetingAccountPublicKey),
+          user: provider.wallet.publicKey,
+        },
+        signers: [],
+      });
+      console.log("Greeting incremented!");
+    } catch (err) {
+      console.error("Error incrementing greeting:", err);
+      setError("Failed to increment greeting. Please try again.");
+    }
+  };
+
+  return (
+    <div>
+      <WalletMultiButton />
+      <WalletDisconnectButton />
+      <button onClick={createGreeting}>Create Greeting</button>
+      {greetingAccountPublicKey && (
+        <button onClick={incrementGreeting}>Increment Greeting</button>
+      )}
+      {error && <p style={{ color: "red" }}>{error}</p>}
+    </div>
+  );
+};
+
+export default App;
+```
+
+**`index.js`:**
+
+```javascript
+import React from "react";
+import { createRoot } from "react-dom/client";
+import "./index.css";
+import App from "./App";
+import {
+  ConnectionProvider,
+  WalletProvider,
+} from "@solana/wallet-adapter-react";
+import { PhantomWalletAdapter } from "@solana/wallet-adapter-phantom";
+import "@solana/wallet-adapter-react-ui/styles.css";
+import { WalletModalProvider } from "@solana/wallet-adapter-react-ui";
+
+const wallets = [new PhantomWalletAdapter()];
+const rootElement = document.getElementById("root");
+const root = createRoot(rootElement);
+
+root.render(
+  <React.StrictMode>
+    <ConnectionProvider endpoint="http://127.0.0.1:8899">
+      <WalletProvider wallets={wallets} autoConnect>
+        <WalletModalProvider>
+          <App />
+        </WalletModalProvider>
+      </WalletProvider>
+    </ConnectionProvider>
+  </React.StrictMode>
+);
+```
+
+### Running the App
+
+Airdrop some SOL to your wallet on the local network:
+
+```bash
+solana airdrop 10 <YOUR_WALLET_ADDRESS>
+```
+
+Start the app:
+
+```bash
+npm start
+```
+
+Click **"Select Wallet"** to connect your Phantom wallet, then click **"Create Greeting"** to initialize a greeting account. Once created, click **"Increment Greeting"** to increment the counter.
+
+---

@@ -1,0 +1,104 @@
+import { ArticleSection } from "../../../../components/ArticleSection/ArticleSection";
+
+<ArticleSection name="Section 5: Testing and Deployment" id="testing-deployment" level="h2" />
+
+### Writing Tests
+
+In the `tests/` directory, open `my_solana_dapp.js` and insert the following test code:
+
+```rust
+use anchor_lang::prelude::*;
+use anchor_lang::solana_program::system_program;
+use my_solana_dapp::{self, *};
+use anchor_lang::ToAccountInfo;
+use anchor_lang::solana_program::pubkey::Pubkey;
+
+#[tokio::test]
+async fn test_create_and_increment_greeting() {
+    let program_test = anchor_lang::solana_program_test!(my_solana_dapp);
+    program_test.start().await;
+
+    let (mut banks_client, payer, recent_blockhash) =
+        program_test.banks_client().await;
+
+    let greeting_account = Keypair::new();
+
+    // Create Greeting Account
+    {
+        let create_greeting_ix = instruction::create_greeting(
+            &my_solana_dapp::id(),
+            &greeting_account.pubkey(),
+            &payer.pubkey(),
+        );
+
+        let mut transaction = Transaction::new_with_payer(
+            &[create_greeting_ix],
+            Some(&payer.pubkey()),
+        );
+        transaction.sign(&[&payer, &greeting_account], recent_blockhash);
+        banks_client.process_transaction(transaction).await.unwrap();
+    }
+
+    // Increment Greeting Account
+    {
+        let increment_greeting_ix = instruction::increment_greeting(
+            &my_solana_dapp::id(),
+            &greeting_account.pubkey(),
+        );
+
+        let mut transaction = Transaction::new_with_payer(
+            &[increment_greeting_ix],
+            Some(&payer.pubkey()),
+        );
+        transaction.sign(&[&payer], recent_blockhash);
+        banks_client.process_transaction(transaction).await.unwrap();
+    }
+
+    // Fetch and verify the updated greeting account
+    let greeting_account_data: GreetingAccount = banks_client
+        .get_account(greeting_account.pubkey())
+        .await
+        .expect("get_account")
+        .expect("account not found")
+        .try_into()
+        .expect("account deserialization");
+
+    assert_eq!(greeting_account_data.counter, 1);
+}
+```
+
+Run the tests:
+
+```bash
+anchor test
+```
+
+### Deploying to Devnet
+
+1. Ensure the default configuration in `Anchor.toml` points to devnet.
+2. Fund your wallet using a faucet if necessary.
+3. Deploy:
+
+```bash
+anchor deploy --provider.cluster devnet
+```
+
+### Deploying to Mainnet
+
+1. Update `Anchor.toml` to point to mainnet settings (RPC URL, wallet).
+2. Ensure you have enough real SOL to cover deployment and transaction costs.
+3. Deploy:
+
+```bash
+anchor deploy --provider.cluster mainnet
+```
+
+### Post-Deployment
+
+After deployment, monitor your application's performance and user interaction using tools like **Solana Explorer** and Anchor's logging features. Engage with your user community for feedback and support.
+
+---
+
+<ArticleSection name="Conclusion" id="conclusion" level="h2" />
+
+Thanks to this guide, you now have a basic understanding of developing on Solana using Anchor and integrating with a React frontend. This combination will prepare you for the exciting world of decentralized application development. Remember, the blockchain journey is continuous and filled with learning and innovation. Happy coding!
