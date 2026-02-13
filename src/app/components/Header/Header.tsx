@@ -289,7 +289,6 @@ export default function HeaderContent() {
             </div>
           </div>
         </div>
-        <MarketingBanner />
       </div>
     </motion.div>
   );
