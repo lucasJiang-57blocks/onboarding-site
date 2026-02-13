@@ -144,7 +144,7 @@
   },
   "wallet_recommended": {
     "title": "连接你的钱包",
-    "description": "连接你的钱包以完成课程并获得 NFT 奖励！",
+    "description": "连接你的钱包以完成课程！",
     "connect_wallet": "连接钱包",
     "dont_show_again": "不再显示"
   },

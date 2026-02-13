@@ -157,7 +157,7 @@
   },
   "wallet_recommended": {
     "title": "Kết nối ví của bạn",
-    "description": "Kết nối ví để theo dõi tiến độ các khóa học và nhận phần thưởng NFT!",
+    "description": "Kết nối ví để theo dõi tiến độ các khóa học!",
     "connect_wallet": "Kết nối ví",
     "dont_show_again": "Không hiển thị lại"
   },

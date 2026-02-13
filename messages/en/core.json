@@ -165,7 +165,7 @@
   },
   "wallet_recommended": {
     "title": "Connect Your Wallet",
-    "description": "Connect your wallet to progress through courses and earn NFT rewards!",
+    "description": "Connect your wallet to progress through courses!",
     "connect_wallet": "Connect Wallet",
     "dont_show_again": "Don't show again"
   },
