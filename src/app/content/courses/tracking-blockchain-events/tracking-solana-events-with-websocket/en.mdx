@@ -1,0 +1,285 @@
+import { ArticleSection } from "../../../../components/ArticleSection/ArticleSection";
+
+# How to Create Solana WebSocket Subscriptions
+
+<ArticleSection name="Overview" id="overview" level="h2" />
+
+Event listeners (subscriptions) let your app react when something on-chain changes. Solana’s RPC exposes several **WebSocket subscriptions** so you can listen for account changes, logs, slot updates, and more.
+
+Example use cases: a bot that watches a program (e.g. sales), a dApp that tracks transaction status, or notifications when a wallet balance changes.
+
+---
+
+<ArticleSection name="What You Will Do" id="what-you-will-do" level="h2" />
+
+You will use **Solana WebSocket (WSS)** endpoints to subscribe to on-chain updates. You’ll build a small TypeScript app that subscribes to **account changes** for a wallet, then use Solana’s **unsubscribe** API to remove the listener. Other subscription types are summarized at the end.
+
+---
+
+<ArticleSection name="What You Will Need" id="what-you-will-need" level="h2" />
+
+- **Node.js** (v16.15 or higher)
+- **npm** or **yarn**
+- **TypeScript** and **ts-node** (or run TS with your preferred setup)
+- **@solana/web3.js** (v1.x for this guide)
+- An RPC provider that supports **WebSocket** (WSS) — e.g. QuickNode, Helius, or public endpoints
+
+---
+
+<ArticleSection name="Set Up Your Environment" id="setup-environment" level="h2" />
+
+Create a project and install dependencies:
+
+```bash
+mkdir solana-subscriptions
+cd solana-subscriptions
+```
+
+```bash
+yarn init -y
+# or: npm init -y
+```
+
+```bash
+yarn add @solana/web3.js@1
+# or: npm install @solana/web3.js@1
+```
+
+Create **app.ts** and import from Solana Web3:
+
+```typescript
+import { Connection, PublicKey, LAMPORTS_PER_SOL } from "@solana/web3.js";
+```
+
+---
+
+<ArticleSection name="Configure Your RPC Endpoint" id="configure-endpoint" level="h2" />
+
+You need an **HTTP** endpoint for normal RPC and a **WebSocket (WSS)** endpoint for subscriptions. Many providers give both (e.g. same base URL with `https` vs `wss`).
+
+Create two variables in **app.ts** (replace with your own URLs):
+
+```typescript
+const WSS_ENDPOINT = "wss://your-rpc-provider.com/..."; // e.g. QuickNode, Helius WSS URL
+const HTTP_ENDPOINT = "https://your-rpc-provider.com/..."; // same provider, HTTP URL
+```
+
+---
+
+<ArticleSection name="Establish a Connection" id="establish-connection" level="h2" />
+
+Create a **Connection** and pass the optional **wsEndpoint** so subscriptions use the WSS URL:
+
+```typescript
+const solanaConnection = new Connection(HTTP_ENDPOINT, { wsEndpoint: WSS_ENDPOINT });
+```
+
+- **HTTP_ENDPOINT** — Used for regular RPC calls (e.g. getBalance, requestAirdrop).
+- **wsEndpoint** — Used for WebSocket subscriptions (accountChange, logs, etc.). If you omit it, the client may derive a WebSocket URL from the HTTP URL (e.g. replace `https` with `wss`); some providers require an explicit WSS URL.
+
+---
+
+<ArticleSection name="Create an Account Subscription" id="account-subscription" level="h2" />
+
+Use **onAccountChange** to listen for balance/data changes for a given account (e.g. a wallet):
+
+```typescript
+(async () => {
+  const ACCOUNT_TO_WATCH = new PublicKey("YourWalletAddressHere"); // Replace with a real address
+
+  const subscriptionId = await solanaConnection.onAccountChange(
+    ACCOUNT_TO_WATCH,
+    (updatedAccountInfo) => {
+      console.log(
+        `--- Event for ${ACCOUNT_TO_WATCH.toString()} ---`,
+        "New balance (SOL):",
+        updatedAccountInfo.lamports / LAMPORTS_PER_SOL
+      );
+    },
+    "confirmed"
+  );
+
+  console.log("WebSocket started, subscription ID:", subscriptionId);
+})();
+```
+
+- **First argument** — **PublicKey** of the account to watch.
+- **Callback** — Called whenever the account data changes; **updatedAccountInfo.lamports** is the new balance.
+- **Third argument** — Commitment level (e.g. **"confirmed"**). Optional; defaults vary by SDK.
+
+The script stays running and keeps listening until you stop it or unsubscribe.
+
+---
+
+<ArticleSection name="Add a Test Airdrop (Optional)" id="test-airdrop" level="h2" />
+
+To verify the subscription, you can request an airdrop to the watched account (devnet/testnet only). Add a small delay so the subscription is active first:
+
+```typescript
+const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
+(async () => {
+  const ACCOUNT_TO_WATCH = new PublicKey("YourWalletAddressHere");
+
+  const subscriptionId = await solanaConnection.onAccountChange(
+    ACCOUNT_TO_WATCH,
+    (updatedAccountInfo) => {
+      console.log(
+        `--- Event for ${ACCOUNT_TO_WATCH.toString()} ---`,
+        "New balance (SOL):",
+        updatedAccountInfo.lamports / LAMPORTS_PER_SOL
+      );
+    },
+    "confirmed"
+  );
+
+  console.log("WebSocket started, subscription ID:", subscriptionId);
+
+  await sleep(10000); // Wait 10 seconds
+  await solanaConnection.requestAirdrop(ACCOUNT_TO_WATCH, LAMPORTS_PER_SOL);
+})();
+```
+
+After the airdrop is processed, the callback should fire with the new balance. Use **Ctrl+C** to stop the process.
+
+---
+
+<ArticleSection name="Unsubscribe from the Listener" id="unsubscribe" level="h2" />
+
+To stop receiving account updates, call **removeAccountChangeListener** with the **subscriptionId** returned by **onAccountChange**:
+
+```typescript
+await sleep(10000); // e.g. after airdrop, wait for tx to land
+await solanaConnection.removeAccountChangeListener(subscriptionId);
+console.log(`WebSocket subscription ${subscriptionId} closed.`);
+```
+
+Use this when the listener is no longer needed (e.g. after a timeout, a target balance, or a number of events).
+
+---
+
+<ArticleSection name="Complete Example" id="complete-example" level="h2" />
+
+Full **app.ts** with subscription, airdrop test, and unsubscribe:
+
+```typescript
+import { Connection, PublicKey, LAMPORTS_PER_SOL } from "@solana/web3.js";
+
+const WSS_ENDPOINT = "wss://your-wss-url";
+const HTTP_ENDPOINT = "https://your-http-url";
+const solanaConnection = new Connection(HTTP_ENDPOINT, { wsEndpoint: WSS_ENDPOINT });
+
+const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
+(async () => {
+  const ACCOUNT_TO_WATCH = new PublicKey("YourWalletAddressHere");
+
+  const subscriptionId = await solanaConnection.onAccountChange(
+    ACCOUNT_TO_WATCH,
+    (updatedAccountInfo) => {
+      console.log(
+        `--- Event for ${ACCOUNT_TO_WATCH.toString()} ---`,
+        "New balance (SOL):",
+        updatedAccountInfo.lamports / LAMPORTS_PER_SOL
+      );
+    },
+    "confirmed"
+  );
+
+  console.log("WebSocket started, subscription ID:", subscriptionId);
+
+  await sleep(10000);
+  await solanaConnection.requestAirdrop(ACCOUNT_TO_WATCH, LAMPORTS_PER_SOL);
+  await sleep(10000);
+  await solanaConnection.removeAccountChangeListener(subscriptionId);
+  console.log(`WebSocket subscription ${subscriptionId} closed.`);
+})();
+```
+
+Run it:
+
+```bash
+ts-node app.ts
+```
+
+---
+
+<ArticleSection name="Other Solana WebSocket Subscriptions" id="other-subscriptions" level="h2" />
+
+Solana supports more subscription types. Each has a corresponding **remove...Listener(subscriptionId)** (or similar) to unsubscribe:
+
+| Method | Description | Unsubscribe |
+|--------|-------------|-------------|
+| **onAccountChange** | Fired when a specific account’s data changes | removeAccountChangeListener |
+| **onProgramAccountChange** | Fired when any account owned by a program changes (optional filters) | removeProgramAccountChangeListener |
+| **onLogs** | Fired when logs are emitted (e.g. for an address or "all") | removeOnLogsListener |
+| **onSlotChange** | Fired on slot updates | removeSlotChangeListener |
+| **onSignature** | Fired when a transaction signature is confirmed/failed | removeSignatureListener |
+| **onRootChange** | Fired on root changes | removeRootChangeListener |
+
+All unsubscribe methods take the **subscriptionId** (number) returned when you subscribed.
+
+---
+
+<ArticleSection name="Using Filters" id="using-filters" level="h2" />
+
+Filters reduce noise and cost by limiting what you receive.
+
+### onLogs
+
+- **'all'** — All logs (expensive; use only if needed).
+- **PublicKey** — Only logs that mention that address.
+
+```typescript
+// All logs (expensive)
+const id1 = await connection.onLogs("all", (logs) => console.log(logs));
+
+// Logs for one address
+const id2 = await connection.onLogs(EXAMPLE_PUBLIC_KEY, (logs) => console.log(logs));
+```
+
+### onProgramAccountChange
+
+Use **memcmp** and/or **dataSize** so only matching accounts trigger the callback:
+
+```typescript
+const filters = [
+  {
+    memcmp: {
+      offset: 0,
+      bytes: "base58_encoded_bytes_here",
+    },
+  },
+  {
+    dataSize: 128, // account data length
+  },
+];
+
+const subscriptionId = await connection.onProgramAccountChange(
+  new PublicKey("Your_Program_ID_Here"),
+  (accountInfo) => console.log("Account changed:", accountInfo),
+  "confirmed",
+  filters
+);
+```
+
+- **memcmp** — Match bytes at a given offset in account data.
+- **dataSize** — Match accounts by data length.
+
+---
+
+<ArticleSection name="Billing and Optimization" id="billing-optimization" level="h2" />
+
+Many providers bill WebSocket usage by **number of responses**, not by number of subscriptions. To optimize:
+
+- **Unsubscribe** when you no longer need updates.
+- **Use filters** (e.g. onProgramAccountChange, onLogs by address) so you only get relevant data.
+- Use a **commitment level** that fits your use case (e.g. **"confirmed"** vs **"finalized"**).
+- **Audit** active subscriptions and remove unused ones.
+- **Monitor** usage in your provider dashboard.
+
+---
+
+<ArticleSection name="Conclusion" id="conclusion" level="h2" />
+
+You now know how to create a Solana **WebSocket** subscription for **account changes**, how to **unsubscribe**, and how other subscription types and **filters** work. Use these to build real-time features (notifications, dashboards, bots) while keeping filters and lifecycle (subscribe/unsubscribe) in mind for cost and clarity.

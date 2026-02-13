@@ -1,0 +1,208 @@
+import { ArticleSection } from "../../../../components/ArticleSection/ArticleSection";
+
+# Interact With Blockchain Using Node.js: Create a Cron Task for Your Smart Contract
+
+This guide shows how to **read from** and **submit transactions to** the blockchain from a **Node.js** server on a schedule. Use cases include sending NFTs to users every day at 11:59 PM or opening a sale every Tuesday. Smart contracts cannot trigger themselves at a future time—something off-chain must call them. **Chainlink Keepers** do this for a fee in LINK; here we build a **simple keeper** with Node.js, **node-cron**, and **PM2**.
+
+---
+
+<ArticleSection name="Prerequisites" id="prerequisites" level="h2" />
+
+- Basic **Node.js** experience
+- Basic **Solidity** (contract that exposes a “check” and “perform” function)
+
+---
+
+<ArticleSection name="What We Will Do" id="what-we-will-do" level="h2" />
+
+1. Create a **Node.js server** that talks to your smart contract.
+2. Add a **query function** that checks whether a transaction should run (e.g. from contract state).
+3. **Submit a transaction** when needed (e.g. send NFTs, open sale).
+4. Schedule execution with a **cron task** (e.g. daily at 23:59).
+5. Run the server with **PM2** in production.
+
+---
+
+<ArticleSection name="Create a Node.js Server" id="create-server" level="h2" />
+
+### Initialize the project
+
+```bash
+yarn init -y
+# or: npm init -y
+```
+
+### Install dependencies
+
+- **@truffle/contract** and **@truffle/hdwallet-provider** — Interact with the contract (read + send transactions).
+- **web3** — Provider and connection to the chain.
+- **dotenv** — Load **RPC URL**, **contract address**, and **private key** from environment.
+- **node-cron** — Schedule cron jobs.
+- **pm2** — Process manager for running the server in production.
+
+```bash
+yarn add @truffle/contract @truffle/hdwallet-provider dotenv node-cron pm2 web3
+```
+
+### Create entry file and script
+
+```bash
+touch index.js
+```
+
+In **package.json**, add:
+
+```json
+"scripts": {
+  "dev": "node index.js",
+  "deploy": "pm2 start index.js"
+}
+```
+
+---
+
+<ArticleSection name="Implement index.js" id="implement-index" level="h2" />
+
+### Imports and environment
+
+```javascript
+"use strict";
+
+const Contract = require("@truffle/contract");
+const WalletProvider = require("@truffle/hdwallet-provider");
+const Web3 = require("web3");
+const cron = require("node-cron");
+const path = require("path");
+const fs = require("fs");
+
+require("dotenv").config();
+
+const RPC_URL = process.env.RPC_URL;
+const contractAddress = process.env.CONTRACT_ADDRESS;
+
+const web3 = new Web3(new Web3.providers.HttpProvider(RPC_URL));
+```
+
+### Load ABI and create contract instance
+
+Inside your main logic (e.g. an `execute` function or before scheduling):
+
+```javascript
+const abiPath = path.resolve("abi/stake.json");
+const rawData = fs.readFileSync(abiPath);
+const contractAbi = JSON.parse(rawData);
+
+const contract = Contract({ abi: contractAbi });
+const provider = new WalletProvider(process.env.PRIVATE_KEY, RPC_URL);
+contract.setProvider(provider);
+const contractInstance = await contract.at(contractAddress);
+```
+
+Place your contract ABI at **abi/stake.json** (or change the path). You need **contractAddress** and **PRIVATE_KEY** in **.env** (see below).
+
+### Read vs write
+
+- **Read / query** (no transaction):
+
+```javascript
+const result = await contractInstance.functionName(/* parameters */);
+```
+
+- **Write** (submit transaction; include `from`):
+
+```javascript
+await contractInstance.functionName(/* parameters */, {
+  from: web3.eth.accounts.privateKeyToAccount(process.env.PRIVATE_KEY).address,
+});
+```
+
+---
+
+<ArticleSection name=".env Configuration" id="env-config" level="h2" />
+
+Create a **.env** file in the project root (do not commit it):
+
+```bash
+RPC_URL=https://data-seed-prebsc-1-s1.binance.org:8545/
+CONTRACT_ADDRESS=<your deployed contract address>
+PRIVATE_KEY=<wallet private key (with funds for gas)>
+```
+
+Use any EVM RPC URL (BSC, Ethereum, etc.). The wallet must hold enough native token to pay for gas.
+
+---
+
+<ArticleSection name="Schedule the Task with node-cron" id="cron-schedule" level="h2" />
+
+Run a job **daily at 23:59** (minute 59, hour 23). Cron expression: **"59 23 * * *"** (see [node-cron](https://www.npmjs.com/package/node-cron) for other patterns).
+
+1. **Check** whether the task should run (e.g. call a contract view function).
+2. If true, **submit the transaction** (e.g. call `performTask`).
+3. Wrap in **try/catch** for timeouts, insufficient gas, or contract reverts.
+
+```javascript
+cron.schedule("59 23 * * *", async () => {
+  try {
+    const isTaskNeedToBeExecuted = await contractInstance.checkIfTaskNeedToBeExecuted();
+
+    if (isTaskNeedToBeExecuted) {
+      await contractInstance.performTask({
+        from: web3.eth.accounts.privateKeyToAccount(process.env.PRIVATE_KEY).address,
+      });
+    }
+  } catch (error) {
+    console.error(error);
+  }
+});
+```
+
+- **checkIfTaskNeedToBeExecuted()** — Your contract’s view that returns a boolean (e.g. “is it time to run?” or “are there NFTs to send?”).
+- **performTask()** — Your contract’s function that performs the action (sends NFTs, opens sale, etc.).
+
+Adjust the cron expression if you want a different schedule (e.g. every Tuesday).
+
+---
+
+<ArticleSection name="Run and Deploy" id="run-deploy" level="h2" />
+
+### Local run
+
+```bash
+node index.js
+# or
+yarn dev
+```
+
+The process will stay running and execute the cron at the scheduled time.
+
+### Production with PM2
+
+**PM2** keeps the process running and manages logs:
+
+```bash
+pm2 start index.js
+# or
+yarn deploy
+```
+
+View logs:
+
+```bash
+pm2 logs
+```
+
+You can run this on any VPS or cloud (e.g. AWS free tier); the app is lightweight.
+
+---
+
+<ArticleSection name="Summary" id="summary" level="h2" />
+
+You built a **Node.js keeper** that:
+
+- Connects to the blockchain via **Web3** and **Truffle** contract + **HDWalletProvider**.
+- Loads contract **ABI** and **address** from the filesystem and **.env**.
+- Uses **node-cron** to run a job (e.g. daily at 23:59).
+- Calls a **check** function on the contract; if it returns true, calls a **perform** function to submit a transaction.
+- Runs in production with **PM2**.
+
+Ensure your contract exposes something like **checkIfTaskNeedToBeExecuted** and **performTask**, and that the wallet in **.env** has enough balance for gas. For more complex scheduling or decentralized guarantees, consider **Chainlink Keepers** or similar services.

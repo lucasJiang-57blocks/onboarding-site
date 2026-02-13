@@ -3,6 +3,59 @@ import { BRAND_COLOURS } from "@blueshift-gg/ui-components";
 
 export const courses: CourseMetadata[] = withCourseNumber([
   {
+    slug: "cook-a-solana-staking-program",
+    language: "Anchor",
+    color: BRAND_COLOURS.anchor,
+    difficulty: 1,
+    isFeatured: true,
+    lessons: [
+      { slug: "part-one" },
+      { slug: "part-two" },
+    ],
+  },
+  {
+    slug: "interact-with-blockchain-using-cron-task",
+    language: "Typescript",
+    color: BRAND_COLOURS.typescript,
+    difficulty: 1,
+    isFeatured: true,
+    lessons: [
+      { slug: "create-a-crone-task-for-contract" },
+    ],
+  },
+  {
+    slug: "tracking-blockchain-events",
+    language: "Typescript",
+    color: BRAND_COLOURS.typescript,
+    difficulty: 1,
+    isFeatured: true,
+    lessons: [
+      { slug: "tracking-eth-events-with-web3js" },
+      { slug: "tracking-solana-events-with-websocket" },
+    ],
+  },
+  {
+    slug: "interact-with-contract-by-nodejs",
+    language: "Typescript",
+    color: BRAND_COLOURS.typescript,
+    difficulty: 1,
+    isFeatured: true,
+    lessons: [
+      { slug: "interact-with-ethereum-by-ethersjs" },
+      { slug: "interact-with-solana-by-solana-web3js" },
+    ],
+  },
+  {
+    slug: "guide-to-the-web3-stack",
+    language: "General",
+    color: BRAND_COLOURS.general,
+    difficulty: 1,
+    isFeatured: true,
+    lessons: [
+      { slug: "introduction" },
+    ],
+  },
+  {
     slug: "build-a-solana-explorer",
     language: "Typescript",
     color: BRAND_COLOURS.typescript,
@@ -103,7 +156,6 @@ export const courses: CourseMetadata[] = withCourseNumber([
       { slug: "blockchain-evolution" },
       { slug: "introduction-to-solana" },
       { slug: "conclusion" },
-      { slug: "test-test" },
     ],
   },
   // {

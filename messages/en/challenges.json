@@ -1,5 +1,21 @@
 {
   "challenges": {
+    "solana-staking-program": {
+      "title": "Solana Staking Program",
+      "requirements": {
+        "cook-a-solana-staking-program": {
+          "title": "Challenge 1: Cooking a Solana staking program"
+        }
+      }
+    },
+    "veterinary-clinic-management": {
+      "title": "Veterinary Clinic Management",
+      "requirements": {
+        "veterinary-clinic-management": {
+          "title": "Challenge 1: Veterinary clinic management"
+        }
+      }
+    },
     "anchor-memo": {
       "title": "Anchor Memo",
       "requirements": {

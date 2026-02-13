@@ -3,20 +3,23 @@ import { BRAND_COLOURS } from "@blueshift-gg/ui-components";
 
 export const paths: PathMetadata[] = [
   {
-    slug: "web3-fullstack-beginner",
+    slug: "smart-contract-web3-beginner",
     language: "General",
     color: BRAND_COLOURS.general,
     difficulty: 1,
     isFeatured: true,
-    estimatedHours: 80,
+    estimatedHours: 160,
     steps: [
       { type: "course", slug: "introduction-to-blockchain-and-solana" },
       { type: "course", slug: "introduction-to-ethereum" },
+      { type: "course", slug: "guide-to-the-web3-stack" },
       { type: "course", slug: "flip-coins-on-evm" },
       { type: "course", slug: "your-first-solana-fullstack-dapp" },
       { type: "challenge", slug: "anchor-flip-coins" },
-      { type: "course", slug: "introduction-to-uniswap" },
-      { type: "challenge", slug: "anchor-uniswap-v2" },
+      // { type: "course", slug: "introduction-to-uniswap" },
+      // { type: "challenge", slug: "anchor-uniswap-v2" },
+      { type: "course", slug: "cook-a-solana-staking-program" },
+      { type: "challenge", slug: "solana-staking-program" },
     ],
   },
   // {
@@ -72,14 +75,13 @@ export const paths: PathMetadata[] = [
     color: BRAND_COLOURS.typescript,
     difficulty: 1,
     isFeatured: true,
-    estimatedHours: 15,
+    estimatedHours: 40,
     steps: [
       { type: "course", slug: "introduction-to-blockchain-and-solana" },
+      { type: "course", slug: "introduction-to-ethereum" },
+      { type: "course", slug: "guide-to-the-web3-stack" },
       { type: "course", slug: "create-evm-dapp-with-wagmi-and-rainbowkit" },
       { type: "course", slug: "build-a-solana-explorer" },
-      { type: "course", slug: "tokens-on-solana" },
-      { type: "course", slug: "spl-token-with-web3js" },
-      { type: "course", slug: "token-2022-with-web3js" },
     ],
   },
   {
@@ -88,12 +90,18 @@ export const paths: PathMetadata[] = [
     color: BRAND_COLOURS.general,
     difficulty: 1,
     isFeatured: true,
-    estimatedHours: 15,
+    estimatedHours: 80,
     steps: [
       { type: "course", slug: "introduction-to-blockchain-and-solana" },
+      { type: "course", slug: "introduction-to-ethereum" },
+      { type: "course", slug: "guide-to-the-web3-stack" },
+      { type: "course", slug: "interact-with-contract-by-nodejs" },
+      { type: "course", slug: "tracking-blockchain-events" },
+      { type: "course", slug: "interact-with-blockchain-using-cron-task" },
       { type: "course", slug: "tokens-on-solana" },
       { type: "course", slug: "spl-token-with-web3js" },
       { type: "course", slug: "token-2022-with-web3js" },
+      { type: "challenge", slug: "typescript-mint-an-spl-token"}
     ],
   },
   // {

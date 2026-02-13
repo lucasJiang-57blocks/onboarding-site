@@ -1,0 +1,178 @@
+import { ArticleSection } from "../../../../components/ArticleSection/ArticleSection";
+
+# A Developer's Guide to the Web3 Stack
+
+As developers and builders first and foremost, we understand that decentralization often evokes the notion of a fragmented tech stack. And while it is true that Web3 is still nascent and rapidly evolving, we have found that its underpinning building blocks have begun taking shape.
+
+To better understand the inner workings of Web3 and the decentralized internet, let's dive into the Web3 development stack.
+
+---
+
+<ArticleSection name="Web3 Stack Overview" id="web3-stack-overview" level="h2" />
+
+At a high level, building any Web3 application requires an in-depth understanding of:
+
+- **Blockchain networks**
+- **Web3 infrastructure**
+- **Web3 development environments**
+![](/courses/guide-to-the-web3-stack/images/web3-stack-overview.avif)
+
+---
+
+<ArticleSection name="Web3 Network Layer" id="web3-network-layer" level="h2" />
+
+At the base of the Web3 technology stack is the **blockchain network layer**. While Web2 applications rely on centralized databases, Web3 applications are built on top of blockchain architectures for trustless and permissionless access.
+
+![](/courses/guide-to-the-web3-stack/images/web3-network-layer.avif)
+
+When picking a blockchain network for building decentralized applications (**dApps**), developers have two primary choices: **Ethereum Virtual Machine (EVM)**-compatible blockchains and non-EVM-compatible blockchains.
+
+### EVM Blockchains
+
+Historically, **Ethereum** has served as the primary framework for Web3 development. Its **Ethereum Virtual Machine (EVM)** stores key information like accounts and balances, maintains a machine state that changes with each new block according to predefined rules, and provides a framework for the storage and execution of **smart contracts**, enabling on-chain logic.
+
+With the rise of Ethereum and the EVM, many networks aiming to address scalability or high transaction costs have adopted EVM-compatible frameworks. EVM-compatible chains share the same software layer—notably **Solidity**—for running smart contracts, so developers can reuse the same tools, documentation, and communities.
+
+#### EVM Blockchain Examples
+
+| Blockchain | Description |
+| ---------- | ----------- |
+| **Ethereum** | Original EVM smart contract platform |
+| **Polygon** | Ethereum sidechain |
+| **Arbitrum** | Layer 2 using Optimistic rollups and multi-round fraud proofs |
+| **Optimism** | Layer 2 using Optimistic rollups and single-round fraud proofs |
+| **Hermez** | ZK rollup Ethereum Layer 2 (managed by Polygon) |
+| **ZKSync** | ZK rollup Ethereum Layer 2 using SNARKs |
+| **Starknet** | ZK rollup Ethereum Layer 2 using STARKs |
+| **Avalanche** | EVM-compatible Layer 1 |
+| **Cronos** | EVM-compatible Layer 1 |
+
+#### EVM Development Environments
+
+When selecting a blockchain for your dApp, consider the depth of developer tooling. EVM-compatible chains benefit from years of Ethereum development and established environments:
+
+1. **Hardhat** — A JavaScript development environment for compiling, testing, deploying, and debugging Ethereum software. Hardhat supports plugins for customizing local blockchain environments and has strong documentation for troubleshooting.
+
+2. **Truffle** — A suite of JavaScript-based tools (Truffle, Ganache, Drizzle) for compiling, testing, and deploying EVM code and building frontend dApps.
+   - **Truffle** — Development environment, testing framework, and deployment pipeline
+   - **Ganache** — Local blockchain for rapid development
+   - **Drizzle** — Frontend libraries to connect UIs with smart contracts
+
+3. **Brownie** — A Python-based EVM framework built on `web3.py`, offering a full suite for compiling, testing, and deploying dApps.
+
+### Non-EVM Blockchains
+
+More recently, developers have built more dApps on blockchains that do not follow the Ethereum framework and are not EVM-compatible.
+
+Non-EVM chains are often designed for data and transaction scalability from the start and can achieve high **transactions per second (TPS)**.
+
+#### Non-EVM Blockchain Examples
+
+| Blockchain | Description |
+| ---------- | ----------- |
+| **Solana** | Layer 1 using Rust, C, C++ for smart contracts |
+| **NEAR** | Layer 1 using Rust or AssemblyScript for smart contracts |
+| **Terra** | Layer 1 using Rust for smart contracts |
+| **Astar** | Parachain connecting the Polkadot ecosystem to major L1s |
+
+#### Non-EVM Development Environments
+
+- **Flow** — Enables testing of Cadence smart contracts with a native Visual Studio Code extension.
+- **Anchor** — Development environment for building and testing Solana programs with a Solidity/Truffle-like experience, lowering the barrier to Rust and Solana development.
+
+### What Blockchain Network Should I Use?
+
+Individual blockchains have different architectures and consensus mechanisms, so each is better suited to certain use cases. We believe in a **multichain Web3** future.
+
+The EVM ecosystem is rich with interoperable tooling; EVM compatibility also makes it easier to move liquidity across chains and offers a familiar experience. For many early-stage developers and new protocols, building on EVM-compatible chains is compelling due to existing tooling, infrastructure, and documentation.
+
+That said, non-EVM chains offer distinct capabilities, growing communities, and improving tooling—and are a strong fit for more experienced developers or specific use cases.
+
+---
+
+<ArticleSection name="Blockchain Interaction Layer" id="blockchain-interaction-layer" level="h2" />
+
+After choosing a blockchain network, the next step is the **blockchain interaction layer**: the building blocks for reading and writing data to the chain.
+
+![](/courses/guide-to-the-web3-stack/images/blockchain-interaction-layer.avif)
+
+Quick recap of how a blockchain works:
+
+- The blockchain is made up of **blocks of data**.
+- Blocks are stored on **distributed nodes**.
+- Each node acts as a "mini-server" for reading and writing blocks.
+- New blocks must be **propagated across all nodes** to keep the network in sync.
+
+In Web3, **on-chain storage** is the standard: it is immutable and publicly verifiable.
+
+**Data providers** (e.g. block explorers) are a key part of this layer. They expose the network layer and provide real-time and historical data on transactions, balances, gas fees, and more. They are used to look up payments, check transaction status, and understand usage trends.
+
+### Web3 Infrastructure Challenges
+
+Without the right infrastructure, accessing and interacting with blockchain data can be difficult.
+
+Because writing large amounts of data on-chain is costly, Web3 developers use **Solidity events** so smart contracts can emit searchable, cost-efficient logs. This approach requires a robust interaction layer so that applications can capture events reliably.
+
+### Running a Node vs. Using a Node Service Provider
+
+Historically, using the blockchain interaction layer meant running your own node—expensive and time-consuming (e.g. on the order of **$86k/year** for a single Ethereum node). Developers often spent more time on node operations (bugs, disk issues, traffic spikes) than on protocols and dApps.
+
+**Node service providers** (e.g. **Alchemy**) emerged to expose **APIs** so developers can interface with blockchains without operating nodes. Alchemy’s API suite supports multiple chains—Layer 1s (e.g. Ethereum), Layer 2s (e.g. Arbitrum, Optimism), sidechains (e.g. Polygon), and non-EVM L1s (e.g. Solana, Astar)—through a single, familiar interface.
+
+This allows developers to get reliable, scalable access to the network layer and focus on building the rest of the Web3 stack.
+
+---
+
+<ArticleSection name="Web3 Presentation Layer" id="web3-presentation-layer" level="h2" />
+
+![](/courses/guide-to-the-web3-stack/images/web3-presentation-layer.avif)
+
+In many ways, the Web3 presentation layer mirrors Web2 development.
+
+For frontend components, **React.js** is the de facto standard in Web3, with broad adoption and strong community support.
+
+Where Web2 and Web3 diverge is in **how the frontend talks to data**. Web3 dApps typically use **Ethers.js**, **Web3.js**, or the **Alchemy SDK** instead of generic HTTP clients like Axios or Fetch. These libraries natively support **RPC** calls to nodes in the blockchain interaction layer, making it easier to read and write chain data. The **Alchemy SDK** has become a popular option that extends Ethers.js with Alchemy’s Enhanced APIs.
+
+### How to Choose Between Ethers.js and Web3.js
+
+Both turn JSON-RPC calls into simple methods such as `getTransactionByHash()` or `getBlockNumber()`.
+
+- **Web3.js** — Historically the most-used Ethereum JavaScript library, with many forks and commits. It lacks the breadth of Ethers documentation and may be less ideal for new Web3 developers.
+
+- **Ethers.js** — Lighter and developer-friendly, with strong documentation. It has become the most popular Web3 library. Maintained by a small team, which can limit the pace of development.
+
+- **Alchemy SDK** — Superset of Ethers.js with the same syntax and features, plus Alchemy Enhanced APIs:
+  - **NFT API** — Fetch NFTs by owner, contract, and more.
+  - **Enhanced WebSockets** — Push notifications for mined or pending transactions.
+  - **Alchemy Transact** — Faster or private transactions.
+  - **Token API** — Search and filter tokens for a user.
+  - **Notify API** — Webhooks for specific on-chain activity.
+  - **Transfers API** — Search blocks for transfers matching a pattern.
+
+---
+
+<ArticleSection name="Decentralized Storage" id="decentralized-storage" level="h2" />
+
+Blockchains handle decentralized state, smart contract execution, and value transfer, but storing large **content** (images, video, GIFs) on-chain is expensive and inefficient. **Decentralized storage** addresses this.
+
+- **IPFS (Interplanetary File System)** — A distributed network of nodes for storing and sharing files, sites, apps, and data. IPFS is widely used as the storage layer for NFT media.
+
+- **Arweave** — Incentivizes permanent storage: miners provide space in exchange for tokens, and the protocol keeps data correct and consistent across nodes.
+
+---
+
+<ArticleSection name="Web3 Application Layer" id="web3-application-layer" level="h2" />
+
+![](/courses/guide-to-the-web3-stack/images/web3-application-layer.avif)
+
+The Web3 application layer spans **DeFi**, **NFTs**, **Identity & Authentication**, **Data & Analytics**, and many other dApp categories. It includes major products such as OpenSea, Uniswap, and Aave.
+
+For developers, this is often the most engaging layer: different dApps can be composed, combining **primitives** into new, complex products.
+
+User-friendly frontends on top of this stack allow the broader public to use the decentralized internet without needing to understand the underlying infrastructure.
+
+---
+
+<ArticleSection name="Start Building on the Web3 Stack Today" id="start-building" level="h2" />
+
+As Web3 matures, there will be new tools, paradigm shifts, and more to learn. The layers described here—network, interaction, presentation, storage, and application—are the durable structure of the Web3 stack and a solid place to start building.

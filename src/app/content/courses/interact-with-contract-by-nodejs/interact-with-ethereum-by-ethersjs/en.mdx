@@ -1,0 +1,484 @@
+import { ArticleSection } from "../../../../components/ArticleSection/ArticleSection";
+
+# Interact with Ethereum Contract by Ethers.js
+
+<ArticleSection name="Introduction" id="introduction" level="h2" />
+
+**[Ethers.js](https://docs.ethers.org/v6/single-page/)** provides a set of tools to interact with Ethereum and EVM-compatible networks from JavaScript, similar to Web3.js. Any chain that supports standard Ethereum JSON-RPC can be used with Ethers.js.
+
+In this guide you will use Ethers.js to **send a transaction** and **deploy a contract** on **Ethereum** or a testnet (e.g. **Sepolia**). The same steps work on any EVM-compatible network (mainnet, testnet, or local node). For more on Ethers.js, see the [official documentation](https://docs.ethers.org/).
+
+---
+
+<ArticleSection name="Prerequisites" id="prerequisites" level="h2" />
+
+- An **account with funds**. For testnets (e.g. Sepolia), you can get test ETH from a [Sepolia faucet](https://sepoliafaucet.com/) or your chosen network’s faucet. For mainnet, you need real ETH.
+- An **RPC endpoint** for the network you want to use: a local node (e.g. `http://127.0.0.1:8545`), or a hosted service such as [Infura](https://infura.io/), [Alchemy](https://alchemy.com/), or the chain’s public RPC.
+
+> **Note:** The examples assume a MacOS or Ubuntu 22.04 environment. Adjust commands and paths if you use Windows.
+
+---
+
+<ArticleSection name="Installing Ethers.js" id="installing-ethers" level="h2" />
+
+Create a project directory and initialize a Node.js project:
+
+```bash
+mkdir ethers-examples && cd ethers-examples && npm init -y
+```
+
+Install **Ethers.js** and the **Solidity compiler**:
+
+```bash
+npm install ethers solc@0.8.30
+```
+
+---
+
+<ArticleSection name="Setting Up the Ethers Provider" id="setup-provider" level="h2" />
+
+The scripts in this guide (sending a transaction, deploying a contract, interacting with a contract) all need an **Ethers provider** to talk to the network.
+
+Use any **Ethereum RPC endpoint**: a local node, or a hosted service (Infura, Alchemy, etc.) with your API key or the chain’s public RPC URL.
+
+To create a provider:
+
+1. Import the **ethers** library.
+2. Define a **providerRPC** object with network config (name, RPC URL, chainId).
+3. Create the provider with **ethers.JsonRpcProvider**.
+
+Example for **Sepolia testnet** (you can add mainnet or other networks with the same pattern):
+
+```javascript
+// 1. Import ethers
+const ethers = require('ethers');
+
+// 2. Define network configurations
+const providerRPC = {
+  sepolia: {
+    name: 'sepolia',
+    rpc: 'https://rpc.sepolia.org', // or your Infura/Alchemy URL
+    chainId: 11155111,
+  },
+  // mainnet: { name: 'mainnet', rpc: 'YOUR_MAINNET_RPC', chainId: 1 },
+};
+
+// 3. Create ethers provider
+const provider = new ethers.JsonRpcProvider(providerRPC.sepolia.rpc, {
+  chainId: providerRPC.sepolia.chainId,
+  name: providerRPC.sepolia.name,
+});
+```
+
+Save this snippet and reuse it in the scripts below (e.g. at the top of each file).
+
+---
+
+<ArticleSection name="Send a Transaction" id="send-transaction" level="h2" />
+
+You will create two scripts: one to **check balances** before and after, and one to **send a transaction**.
+
+### Check Balances Script
+
+Create `balances.js`:
+
+```bash
+touch balances.js
+```
+
+Implement the script:
+
+1. Set up the Ethers provider (reuse the snippet above).
+2. Define **addressFrom** and **addressTo**.
+3. Create an async **balances** function that uses **provider.getBalance**.
+4. Use **ethers.formatEther** to display balances in ETH.
+5. Call **balances()**.
+
+```javascript
+// 1. Add the Ethers provider logic here:
+// {...}
+
+// 2. Create address variables
+const addressFrom = 'INSERT_FROM_ADDRESS';
+const addressTo = 'INSERT_TO_ADDRESS';
+
+// 3. Create balances function
+const balances = async () => {
+  const balanceFrom = ethers.formatEther(await provider.getBalance(addressFrom));
+  const balanceTo = ethers.formatEther(await provider.getBalance(addressTo));
+
+  console.log(`The balance of ${addressFrom} is: ${balanceFrom} ETH`);
+  console.log(`The balance of ${addressTo} is: ${balanceTo} ETH`);
+};
+
+// 4. Call the balances function
+balances();
+```
+
+Run it:
+
+```bash
+node balances.js
+```
+
+### Send Transaction Script
+
+Create `transaction.js`:
+
+```bash
+touch transaction.js
+```
+
+Steps:
+
+1. Set up the Ethers provider.
+2. Define **privateKey** (sender) and **addressTo**. Never store real private keys in source code.
+3. Create a **wallet** with `new ethers.Wallet(privateKey, provider)`.
+4. Create an async **send** function that builds a **tx** object and uses **wallet.sendTransaction(tx)**.
+5. Use **ethers.parseEther('1')** for the value (converts to Wei).
+6. Await the receipt with **createReceipt.wait()**.
+7. Call **send()**.
+
+```javascript
+// 1. Add the Ethers provider logic here:
+// {...}
+
+// 2. Create account variables
+const accountFrom = { privateKey: 'INSERT_YOUR_PRIVATE_KEY' };
+const addressTo = 'INSERT_TO_ADDRESS';
+
+// 3. Create wallet
+const wallet = new ethers.Wallet(accountFrom.privateKey, provider);
+
+// 4. Create send function
+const send = async () => {
+  console.log(`Attempting to send transaction from ${wallet.address} to ${addressTo}`);
+
+  const tx = {
+    to: addressTo,
+    value: ethers.parseEther('1'),
+  };
+
+  const createReceipt = await wallet.sendTransaction(tx);
+  await createReceipt.wait();
+  console.log(`Transaction successful with hash: ${createReceipt.hash}`);
+};
+
+send();
+```
+
+Run it:
+
+```bash
+node transaction.js
+```
+
+Then run `node balances.js` again to confirm both balances changed. Example workflow:
+
+```text
+node balances.js
+# The balance of 0x3B93... is: 3604.67... ETH
+# The balance of 0xFFA0... is: 0 ETH
+
+node transaction.js
+# Attempting to send transaction from 0x3B93... to 0xFFA0...
+# Transaction successful with hash: 0x01e42c...
+
+node balances.js
+# The balance of 0x3B93... is: 3603.67... ETH
+# The balance of 0xFFA0... is: 1.0 ETH
+```
+
+---
+
+<ArticleSection name="Deploy a Contract" id="deploy-contract" level="h2" />
+
+You will compile and deploy a simple **Incrementer** contract.
+
+### Incrementer.sol
+
+Create the contract file:
+
+```bash
+touch Incrementer.sol
+```
+
+Add the Solidity code:
+
+```solidity
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.30;
+
+contract Incrementer {
+    uint256 public number;
+
+    constructor(uint256 _initialNumber) {
+        number = _initialNumber;
+    }
+
+    function increment(uint256 _value) public {
+        number = number + _value;
+    }
+
+    function reset() public {
+        number = 0;
+    }
+}
+```
+
+- **constructor** sets the initial **number** (e.g. 0).
+- **increment(uint256 _value)** adds **_value** to **number** (requires a transaction).
+- **reset()** sets **number** to 0.
+
+> **Note:** This contract is for illustration only and does not handle overflow/underflow (use SafeMath or Solidity 0.8+ checks in production).
+
+### Compile Contract Script
+
+Create `compile.js`:
+
+```bash
+touch compile.js
+```
+
+Steps:
+
+1. Import **fs** and **solc**.
+2. Read **Incrementer.sol** with **fs.readFileSync**.
+3. Build the **input** object for the Solidity compiler (language, sources, settings).
+4. Compile with **solc.compile(JSON.stringify(input))**.
+5. Extract the contract artifact and **module.exports** it for the deploy script.
+
+```javascript
+const fs = require('fs');
+const solc = require('solc');
+
+const source = fs.readFileSync('Incrementer.sol', 'utf8');
+
+const input = {
+  language: 'Solidity',
+  sources: { 'Incrementer.sol': { content: source } },
+  settings: {
+    outputSelection: { '*': { '*': ['*'] } },
+  },
+};
+
+const output = JSON.parse(solc.compile(JSON.stringify(input)));
+const contractFile = output.contracts['Incrementer.sol']['Incrementer'];
+
+module.exports = contractFile;
+```
+
+### Deploy Contract Script
+
+Create `deploy.js`:
+
+```bash
+touch deploy.js
+```
+
+Steps:
+
+1. Import the contract artifact from **compile.js**.
+2. Set up the Ethers provider.
+3. Define **privateKey** and create a **wallet**.
+4. Load **bytecode** and **abi** from the compiled contract.
+5. Create a **ContractFactory** with **abi**, **bytecode**, and **wallet**.
+6. In an async **deploy** function, call **incrementer.deploy(5)** (initial value 5) and wait for the deployment transaction.
+7. Log the deployed contract address (e.g. **contract.target** in Ethers v6).
+8. Call **deploy()**.
+
+```javascript
+// 1. Import the contract file
+const contractFile = require('./compile');
+
+// 2. Add the Ethers provider logic here:
+// {...}
+
+// 3. Create account variables
+const accountFrom = { privateKey: 'INSERT_YOUR_PRIVATE_KEY' };
+
+// 4. Create wallet
+const wallet = new ethers.Wallet(accountFrom.privateKey, provider);
+
+// 5. Load contract information
+const bytecode = contractFile.evm.bytecode.object;
+const abi = contractFile.abi;
+
+// 6. Create contract instance with signer
+const incrementer = new ethers.ContractFactory(abi, bytecode, wallet);
+
+// 7. Create deploy function
+const deploy = async () => {
+  console.log(`Attempting to deploy from account: ${wallet.address}`);
+
+  const contract = await incrementer.deploy(5);
+  await contract.deploymentTransaction().wait();
+
+  console.log(`Contract deployed at address: ${contract.target}`);
+};
+
+deploy();
+```
+
+Run:
+
+```bash
+node deploy.js
+```
+
+Example output:
+
+```text
+Attempting to deploy from account: 0x3B939FeaD1557C741Ff06492FD0127bd287A421e
+Contract deployed at address: 0x2B9c71fc2730B7353Dd3865ae26881Fa38FE598A
+```
+
+---
+
+<ArticleSection name="Read Contract Data (Call Methods)" id="read-contract" level="h2" />
+
+**Call** methods only read state; they do not change storage and do not require a transaction.
+
+Create `get.js`:
+
+```bash
+touch get.js
+```
+
+Steps:
+
+1. Import the **abi** from **compile.js**.
+2. Set up the Ethers provider.
+3. Set **contractAddress** to your deployed contract.
+4. Create a contract instance with **ethers.Contract(contractAddress, abi, provider)** (no signer for read-only).
+5. In an async **get** function, call **incrementer.number()** and log the result.
+6. Call **get()**.
+
+```javascript
+const { abi } = require('./compile');
+// Add the Ethers provider logic here: {...}
+
+const contractAddress = 'INSERT_CONTRACT_ADDRESS';
+const incrementer = new ethers.Contract(contractAddress, abi, provider);
+
+const get = async () => {
+  console.log(`Making a call to contract at address: ${contractAddress}`);
+  const data = await incrementer.number();
+  console.log(`The current number stored is: ${data}`);
+};
+
+get();
+```
+
+Run:
+
+```bash
+node get.js
+```
+
+---
+
+<ArticleSection name="Interact with Contract (Send Methods)" id="send-methods" level="h2" />
+
+**Send** methods change contract state and require a signed transaction. You will add **increment.js** and **reset.js**.
+
+### Increment Script
+
+Create `increment.js`:
+
+```bash
+touch increment.js
+```
+
+1. Import **abi**, set up provider, define **privateKey**, **contractAddress**, and **_value** (e.g. 3).
+2. Create a **wallet** and a contract instance with signer: **ethers.Contract(contractAddress, abi, wallet)**.
+3. In an async **increment** function, call **incrementer.increment(_value)**, then **createReceipt.wait()**.
+4. Call **increment()**.
+
+```javascript
+const { abi } = require('./compile');
+// Add the Ethers provider logic here: {...}
+
+const accountFrom = { privateKey: 'INSERT_YOUR_PRIVATE_KEY' };
+const contractAddress = 'INSERT_CONTRACT_ADDRESS';
+const _value = 3;
+
+const wallet = new ethers.Wallet(accountFrom.privateKey, provider);
+const incrementer = new ethers.Contract(contractAddress, abi, wallet);
+
+const increment = async () => {
+  console.log(`Calling the increment by ${_value} function in contract at address: ${contractAddress}`);
+
+  const createReceipt = await incrementer.increment(_value);
+  await createReceipt.wait();
+
+  console.log(`Tx successful with hash: ${createReceipt.hash}`);
+};
+
+increment();
+```
+
+Run:
+
+```bash
+node increment.js
+```
+
+Use **get.js** to confirm the stored number (e.g. 5 → 8 after increment by 3).
+
+### Reset Script
+
+Create `reset.js`:
+
+```bash
+touch reset.js
+```
+
+1. Import **abi**, set up provider, define **privateKey** and **contractAddress**.
+2. Create **wallet** and contract instance with signer.
+3. In an async **reset** function, call **incrementer.reset()** and wait for the receipt.
+4. Call **reset()**.
+
+```javascript
+const { abi } = require('./compile');
+// Add the Ethers provider logic here: {...}
+
+const accountFrom = { privateKey: 'INSERT_YOUR_PRIVATE_KEY' };
+const contractAddress = 'INSERT_CONTRACT_ADDRESS';
+
+const wallet = new ethers.Wallet(accountFrom.privateKey, provider);
+const incrementer = new ethers.Contract(contractAddress, abi, wallet);
+
+const reset = async () => {
+  console.log(`Calling the reset function in contract at address: ${contractAddress}`);
+
+  const createReceipt = await incrementer.reset();
+  await createReceipt.wait();
+
+  console.log(`Tx successful with hash: ${createReceipt.hash}`);
+};
+
+reset();
+```
+
+Run:
+
+```bash
+node reset.js
+```
+
+Run **get.js** again to confirm the number is 0.
+
+---
+
+<ArticleSection name="Summary" id="summary" level="h2" />
+
+You used **Ethers.js** to:
+
+- Configure a **JsonRpcProvider** for Ethereum or any EVM-compatible network (e.g. Sepolia or mainnet).
+- **Check balances** and **send a transaction** with a **Wallet**.
+- **Compile** a Solidity contract with **solc** and **deploy** it with **ContractFactory**.
+- **Read** state with a read-only **Contract** (call **number()**).
+- **Change** state with a signed **Contract** (call **increment** and **reset**).
+
+Replace placeholder RPC URLs, addresses, and private keys with your own values and never commit real private keys to version control.

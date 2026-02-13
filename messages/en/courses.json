@@ -1,5 +1,43 @@
 {
   "courses": {
+    "cook-a-solana-staking-program": {
+      "title": "Cook a Solana Staking Program",
+      "description": "Learn how to cook a Solana staking program.",
+      "lessons": {
+        "part-one": "Let's Pair-Progra-Cook A Solana Staking Program - Part 1",
+        "part-two": "Let's Pair-Progra-Cook A Solana Staking Program - Part 2"
+      }
+    },
+    "interact-with-blockchain-using-cron-task": {
+      "title": "Interact with Blockchain using Cron Task",
+      "description": "Learn how to interact with blockchain using cron task.",
+      "lessons": {
+        "create-a-crone-task-for-contract": "Create a Cron Task for Your Smart Contract"
+      }
+    },
+    "tracking-blockchain-events": {
+      "title": "Tracking Blockchain Events",
+      "description": "Learn how to track blockchain events using Web3.js and Solana Web3.js.",
+      "lessons": {
+        "tracking-eth-events-with-web3js": "Tracking Ethereum Events with Web3.js",
+        "tracking-solana-events-with-websocket": "Tracking Solana Events with WebSocket"
+      }
+    },
+    "interact-with-contract-by-nodejs": {
+      "title": "Interact with Contract by Node.js",
+      "description": "Learn how to interact with contracts using Node.js.",
+      "lessons": {
+        "interact-with-ethereum-by-ethersjs": "Interact with Ethereum Contract by Ethers.js",
+        "interact-with-solana-by-solana-web3js": "Interact with Solana Contract by Solana Web3.js"
+      }
+    },
+    "guide-to-the-web3-stack": {
+      "title": "Guide to the Web3 Stack",
+      "description": "A Developer's Guide to the Web3 Stack",
+      "lessons": {
+        "introduction": "A Developer's Guide to the Web3 Stack"
+      }
+    },
     "build-a-solana-explorer": {
       "title": "Build a Solana Explorer",
       "description": "Learn how to build a Solana explorer with Typescript.",
@@ -76,8 +114,7 @@
         "blockchain-fundamentals": "Blockchain Fundamentals",
         "blockchain-evolution": "Blockchain Evolution",
         "introduction-to-solana": "Introduction to Solana",
-        "conclusion": "Conclusion",
-        "test-test": "Test Test"
+        "conclusion": "Conclusion"
       }
     },
     "anchor-for-dummies": {

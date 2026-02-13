@@ -3,6 +3,32 @@ import { BRAND_COLOURS } from "@blueshift-gg/ui-components";
 
 export const challenges: ChallengeMetadata[] = [
   {
+    slug: "solana-staking-program",
+    language: "Anchor",
+    color: BRAND_COLOURS.anchor,
+    difficulty: 2,
+    isFeatured: true,
+    unitName: "Cook a Solana Staking Program",
+    apiPath: "/v1/verify/anchor/cook-a-solana-staking-program",
+    tags: ["Anchor", "Staking", "Solana"],
+    requirements: [
+      { instructionKey: "cook-a-solana-staking-program" },
+    ],
+  },
+  {
+    slug: "veterinary-clinic-management",
+    language: "Anchor",
+    color: BRAND_COLOURS.anchor,
+    difficulty: 2,
+    isFeatured: true,
+    unitName: "Veterinary Clinic Management",
+    apiPath: "/v1/verify/anchor/veterinary-clinic-management",
+    tags: ["Anchor", "Veterinary Clinic", "Management"],
+    requirements: [
+      { instructionKey: "veterinary-clinic-management" },
+    ],
+  },
+  {
     slug: "anchor-flip-coins",
     language: "Anchor",
     color: BRAND_COLOURS.anchor,

@@ -62,9 +62,9 @@
     "progress": "Progress",
     "empty_title": "No paths found",
     "empty_description": "Try changing your filters to see learning paths here.",
-    "web3-fullstack-beginner": {
-      "title": "Fullstack Web3 Beginner",
-      "description": "Learn the basics of Web3 and blockchain development with Solana."
+    "smart-contract-web3-beginner": {
+      "title": "Smart Contract Web3 Beginner",
+      "description": "Learn the basics of Web3 and smart contract development."
     },
     "solana-developer-foundations": {
       "title": "Solana Developer Foundations",

@@ -1,0 +1,95 @@
+import { ArticleSection } from "../../../../components/ArticleSection/ArticleSection";
+
+# Solana Staking Program Challenge
+
+Build a **DeFi staking program** on Solana where users deposit an input token (e.g. ```\$BEEF```) and receive a **stake receipt token** (e.g. ```\$STAKE```) in return. Users can later **unstake** by burning ```\$STAKE``` and redeeming their ```\$BEEF``` (and any accrued value) from the program vault.
+
+This challenge aligns with the [Cook a Solana Staking Program](/courses/cook-a-solana-staking-program) course. The course walks through the same flow in a pair-programming style: **Part 1** covers minting the stake token and the core ingredients (SPL Token, PDAs, ATAs, CPI); **Part 2** completes the stake (transferring input tokens into the program vault) and implements unstake (burn + refund).
+
+<ArticleSection name="Overview" id="overview" level="h2" />
+
+**Goal:** Implement a Solana program (with **Anchor**) that:
+
+1. **Stake** — User sends **input tokens** (e.g. \$BEEF) to a **program-owned vault**; the program **mints** an equal (or ratio-based) amount of **stake tokens** (e.g. \$STAKE) to the user.
+2. **Unstake** — User **burns** \$STAKE; the program **transfers** the corresponding \$BEEF from the vault back to the user (1:1 or with a simple reward model).
+
+You will use the **SPL Token Program** via **Cross-Program Invocation (CPI)** for minting, transferring, and burning. The program must hold input tokens in a **program-derived** token account (vault) and use **PDAs** for mint authority and vault signing.
+
+---
+
+<ArticleSection name="Prerequisites & Resources" id="prerequisites" level="h2" />
+
+- **Rust** and **Anchor** basics; **Solana account model** (programs, accounts, PDAs).
+- **SPL Token**: mints, token accounts (ATA), mint/transfer/burn instructions.
+- Completion of (or parallel work with) the course **[Cook a Solana Staking Program](/courses/cook-a-solana-staking-program)** is recommended — Part 1 and Part 2 cover the same ingredients and flow.
+
+**Core concepts from the course:**
+
+- **SPL Token mints** — Create two mints (input token + stake token) via the SPL Token Program; the **stake mint authority** should be a **PDA** so only your program can mint.
+- **Associated Token Accounts (ATAs)** — Users and the program hold tokens in token accounts; the program needs a **vault** (token account) owned by a **PDA** to receive input tokens.
+- **CPI** — Use `CpiContext` and `token::mint_to`, `token::transfer`, `token::burn`; for transfers *out of the vault*, the program must sign with the vault PDA (`CpiContext::new_with_signer`).
+
+---
+
+<ArticleSection name="Suggested Implementation Phases" id="phases" level="h2" />
+
+### 1. Setup & Token Creation (Pre-program)
+
+- Create two **SPL Token mints**: one for the **input token** (e.g. \$BEEF) and one for the **stake token** (e.g. \$STAKE).
+- Set the **stake mint authority** to a **PDA** derived from your program (e.g. `[b"stake_mint_authority"]` or stake mint address) so only the program can mint/burn.
+- Optionally: create the **program vault** (token account for input tokens) in an **initialize**-style instruction, with the vault address as a PDA (e.g. seeded by input mint).
+
+### 2. Stake Instruction
+
+- **Accounts:** User’s input token account (source), user’s stake token account (destination for mint), program vault (destination for input tokens), stake mint, token program, PDA signers (mint authority, optionally vault).
+- **Logic:**
+  1. **Transfer** user’s input tokens to the **program vault** (user signs).
+  2. **Mint** stake tokens to the user’s stake token account (program signs via PDA).
+- Enforce constraints (amount &gt; 0, correct mints/owners) and use Anchor’s account validation where possible.
+
+### 3. Unstake Instruction
+
+- **Accounts:** User’s stake token account (source for burn), user’s input token account (destination for refund), program vault (source for refund), stake mint, token program, PDA signers (mint authority for burn, vault authority for transfer).
+- **Logic:**
+  1. **Burn** stake tokens from the user (user is owner of the stake token account).
+  2. **Transfer** input tokens from the **program vault** to the user (program signs via vault PDA).
+
+### 4. Client & Tests
+
+- Write **Anchor tests** (or a small TypeScript client) that:
+  - Create mints and fund user with input tokens (or use airdrop script).
+  - Call **stake** and assert balances (user stake balance up, vault input balance up).
+  - Call **unstake** and assert balances (user stake balance down, user input balance restored).
+- Optionally: simple script or UI to stake/unstake on devnet.
+
+---
+
+<ArticleSection name="Acceptance Criteria" id="acceptance-criteria" level="h2" />
+
+To pass the challenge, you should be able to demonstrate:
+
+#### 1. Working Code & Deployment
+
+- **Repository:** Clean, readable Anchor program plus tests (and optionally client script). Include a short README with program ID, how to build/test, and how to run a stake/unstake flow.
+- **Tests:** `anchor test` (or equivalent) passes: at least one stake and one unstake path (happy path).
+- **Devnet (optional):** Deploy program and mints on devnet; provide a transaction link (e.g. Solscan) showing a successful stake or unstake.
+
+#### 2. Understanding of Design Choices
+
+- **PDA usage:** Explain why the **stake mint authority** is a PDA and how the seeds are chosen; explain why the **vault** is a PDA and how the program signs the “transfer out of vault” CPI.
+- **SPL Token CPI:** Briefly describe the three CPIs used: **mint_to** (stake), **transfer** (stake: user → vault; unstake: vault → user), **burn** (unstake).
+- **Security:** Who pays for rent (vault, user ATAs)? How does the program ensure only the vault can send input tokens out?
+
+#### 3. Course Alignment
+
+- You may follow the [Cook a Solana Staking Program](/courses/cook-a-solana-staking-program) course structure (Part 1: mints + minting stake tokens; Part 2: vault + transfer in, then unstake with burn + transfer out). Your solution should reflect the same concepts: **SPL Token**, **PDA**, **ATA**, and **CPI** as in the course.
+
+---
+
+<ArticleSection name="Stretch Goals" id="stretch" level="h2" />
+
+- **Reward model:** Instead of 1:1 stake/unstake, implement a simple reward (e.g. stake token value increases over time, or fixed multiplier when unstaking).
+- **Initialize instruction:** Add an explicit `initialize` that creates the program vault (PDA token account) and stores config (e.g. input mint, stake mint) in a global state account.
+- **Frontend:** Add a minimal UI (e.g. with wallet-adapter) to connect, stake, and unstake on devnet.
+
+Once you have a working stake/unstake flow and can explain PDAs and CPIs, you’ve met the core challenge. The course is there to guide you through each ingredient step by step.

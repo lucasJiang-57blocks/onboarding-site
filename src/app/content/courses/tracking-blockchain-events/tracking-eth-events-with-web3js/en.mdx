@@ -1,0 +1,205 @@
+import { ArticleSection } from "../../../../components/ArticleSection/ArticleSection";
+
+# Building a Web3 Event Listener: Tracking Ethereum Events
+
+A guide to creating a Web3 event listener in JavaScript: track and respond to specific blockchain events in real time for decentralized applications.
+
+In the world of blockchain and dApps, staying up to date with on-chain events is important for monitoring token transfers, contract actions, or app updates. This tutorial walks through building an **event listener** using **Web3.js** that continuously listens for events emitted by a contract on the Ethereum blockchain.
+
+You will set up a Web3 provider, define contract details, specify the event to listen for, and implement the listening logic. By the end you will have a script that stays informed and can react to those events.
+
+---
+
+<ArticleSection name="Prerequisites" id="prerequisites" level="h2" />
+
+- Basic knowledge of **blockchain**, **Ethereum**, and **JavaScript**
+- Familiarity with **smart contracts**, **addresses**, and **event-driven** code
+- **Node.js** installed
+- A testing environment (e.g. **Hardhat**) for running the script
+
+---
+
+<ArticleSection name="Step 1: Set Up the Web3 Provider" id="step-1-provider" level="h2" />
+
+Create a script (e.g. `eventListener.js`) and connect to the Ethereum network via a **Web3 provider**.
+
+1. **Import Web3:**
+
+```javascript
+const Web3 = require("web3");
+```
+
+2. **Create a Web3 instance** with a provider URL. Use a **WebSocket** RPC URL so you can subscribe to events (e.g. Infura, Alchemy, or another provider):
+
+```javascript
+const web3 = new Web3("wss://sepolia.infura.io/ws/v3/YOUR_PROJECT_ID");
+```
+
+Replace the URL with your own RPC endpoint (Sepolia, mainnet, or local).
+
+3. **Optional:** Add console logs to show the script has started:
+
+```javascript
+console.log("Beginning routine");
+console.log("Listening for events...");
+```
+
+---
+
+<ArticleSection name="Step 2: Contract That Emits Events (Optional)" id="step-2-contract" level="h2" />
+
+If you don’t have a deployed contract yet, you can use a minimal contract that emits an event.
+
+**Skip to Step 3** if you already have a contract **ABI** and **address**.
+
+### Create and deploy on Remix
+
+1. Open [Remix](https://remix.ethereum.org/).
+2. Create a new file (e.g. **SimpleContract.sol**) and add:
+
+```solidity
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.0;
+
+contract SimpleContract {
+    event MyEvent(string message);
+
+    function emitEvent(string memory message) public {
+        emit MyEvent(message);
+    }
+}
+```
+
+3. In the **Solidity Compiler** tab, compile the contract (e.g. Solidity 0.8.x).
+4. In **Deploy & Run Transactions**, choose **Injected Provider** (e.g. MetaMask), then **Deploy**.
+5. Copy the **contract ABI** (full JSON) and **contract address** from the Deployed Contracts section.
+
+---
+
+<ArticleSection name="Step 3: Define Contract Details and Create Contract Instance" id="step-3-contract-instance" level="h2" />
+
+In `eventListener.js`, define the **ABI** and **address** of the contract you want to listen to, then create a **contract instance**.
+
+**ABI** — Include at least the **event** definition (and any functions you use). Example for the contract above:
+
+```javascript
+const contractABI = [
+  {
+    "inputs": [{ "internalType": "string", "name": "message", "type": "string" }],
+    "name": "emitEvent",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "anonymous": false,
+    "inputs": [{ "indexed": false, "internalType": "string", "name": "message", "type": "string" }],
+    "name": "MyEvent",
+    "type": "event"
+  }
+];
+
+const contractAddress = "0xYourDeployedContractAddress";
+```
+
+Replace with your contract’s ABI and address.
+
+**Create the contract instance:**
+
+```javascript
+const contract = new web3.eth.Contract(contractABI, contractAddress);
+```
+
+---
+
+<ArticleSection name="Step 4: Specify the Event and Implement the Listener" id="step-4-listener" level="h2" />
+
+Choose the **event name** (must match the contract) and subscribe to it:
+
+```javascript
+const eventName = "MyEvent";
+
+contract.events[eventName]({}, (error, event) => {
+  if (error) {
+    console.error("Error:", error);
+    return;
+  }
+  console.log("New event received:");
+  console.log(event.returnValues);
+})
+  .on("connected", (subscriptionId) => {
+    console.log("Connected to the blockchain, subscription:", subscriptionId);
+  })
+  .on("changed", (event) => {
+    console.log("Event changed:", event.returnValues);
+  })
+  .on("error", (err) => {
+    console.error("Event error:", err);
+  });
+
+console.log("End of routine");
+```
+
+- **First argument `{}** — Event filter (indexed parameters). Empty `{}` means “all events of this type.”
+- **Callback `(error, event)`** — Runs when a new event is received; **event.returnValues** contains the event data.
+- **.on("connected" | "changed" | "error")** — Optional handlers for connection, updates, and errors.
+
+The listener runs until the process exits. For long-running use, run the script in the background or with a process manager (e.g. **PM2**).
+
+---
+
+<ArticleSection name="Step 5: Optional — Wrap in a Routine (setInterval)" id="step-5-routine" level="h2" />
+
+If you prefer to re-subscribe periodically (e.g. to recover from connection drops), you can wrap the listener in **setInterval**:
+
+```javascript
+setInterval(() => {
+  contract.events[eventName]({}, (error, event) => {
+    if (error) {
+      console.error("Error:", error);
+      return;
+    }
+    console.log("New event received:");
+    console.log(event.returnValues);
+  })
+    .on("connected", () => console.log("Connected to the blockchain"))
+    .on("changed", (event) => console.log("Event changed:", event.returnValues))
+    .on("error", (error) => console.error("Event error:", error));
+
+  console.log("End of routine");
+}, 5000);
+```
+
+Here the block runs every **5000 ms** (5 seconds). Adjust or remove this if you rely on a single long-lived subscription.
+
+---
+
+<ArticleSection name="Step 6: Run and Test" id="step-6-test" level="h2" />
+
+1. **Run the script** (no Hardhat required for a plain Web3 script):
+
+```bash
+node eventListener.js
+```
+
+If you use Hardhat and put the script under `scripts/`:
+
+```bash
+npx hardhat run scripts/eventListener.js
+```
+
+2. **Trigger an event** — Call the contract function that emits the event (e.g. **emitEvent("hello")** in Remix or another client), on the **same network** as your provider (e.g. Sepolia).
+
+3. **Check the terminal** — You should see “New event received:” and the **returnValues** (e.g. `{ message: "hello" }`).
+
+If nothing appears, confirm:
+
+- Provider URL and network (e.g. Sepolia) match the contract deployment.
+- Contract **address** and **ABI** (including the event) are correct.
+- The event name (e.g. **MyEvent**) matches the contract exactly.
+
+---
+
+<ArticleSection name="Conclusion" id="conclusion" level="h2" />
+
+You now have a Web3.js script that subscribes to a contract event and logs payloads in real time. You can extend it with filters on indexed parameters, multiple events, or integration with your app (e.g. DB, notifications). For production, consider reconnection logic, error handling, and using a robust RPC provider with WebSocket support.
