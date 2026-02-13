@@ -67,7 +67,7 @@ export default function ChallengeFooter({
         <span className="text-shade-primary w-auto shrink-0 font-mono">
           {t("lessons.take_challenge_cta")}
         </span>
-        <Link href={getVerifyHref()} className="w-max">
+        {/* <Link href={getVerifyHref()} className="w-max">
           <Button
             variant="primary"
             size="lg"
@@ -75,7 +75,7 @@ export default function ChallengeFooter({
             icon={{ name: "Challenge" }}
             className="disabled:opacity-40 w-full disabled:cursor-default"
           ></Button>
-        </Link>
+        </Link> */}
       </div>
     </>
   ) : (
@@ -83,7 +83,7 @@ export default function ChallengeFooter({
       <span className="text-shade-primary w-auto flex-shrink-0 font-mono">
         {t("lessons.take_challenge_cta")}
       </span>
-      <Link href={getVerifyHref()} className="w-max">
+      {/* <Link href={getVerifyHref()} className="w-max">
         <Button
           variant="primary"
           size="lg"
@@ -91,7 +91,7 @@ export default function ChallengeFooter({
           icon={{ name: "Challenge" }}
           className="disabled:opacity-40 w-full disabled:cursor-default"
         ></Button>
-      </Link>
+      </Link> */}
     </div>
   );
 }
