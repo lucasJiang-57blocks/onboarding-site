@@ -116,17 +116,17 @@ export default function ChallengeCard({
           animationDuration={0}
         />
         <span className="text-xs font-medium font-mono text-shade-primary">
-          {t("ChallengeCenter.complete_to_earn")}
+          CHALLENGE
         </span>
-        <div className="flex items-center gap-x-1.5">
-          <span className="text-xs font-medium font-mono bg-nft-gradient bg-clip-text text-transparent">
-            1 NFT
-          </span>
+        {/* <div className="flex items-center gap-x-1.5"> */}
+          {/* <span className="text-xs font-medium font-mono bg-nft-gradient bg-clip-text text-transparent"> */}
+            {/* 1 NFT */}
+          {/* </span> */}
           {/* <Divider direction="vertical" className="!h-[12px] !w-[2px]" /> */}
           {/* <span className="text-xs font-medium font-mono bg-xp-gradient bg-clip-text text-transparent"> */}
             {/* 50 XP */}
           {/* </span> */}
-        </div>
+        {/* </div> */}
       </div>
 
       <div className={classNames("flex flex-col gap-y-6 px-4 py-5")}>
@@ -202,7 +202,7 @@ export default function ChallengeCard({
                   className="!w-full"
                 />
               </Link>
-              <div className="flex items-center justify-center gap-x-2">
+              {/* <div className="flex items-center justify-center gap-x-2">
                 <button
                   className="font-mono flex items-center justify-center gap-x-1.5 text-xs text-shade-tertiary/50 cursor-not-allowed w-full flex-shrink uppercase"
                   onMouseEnter={() => setIsHoveredFooter(true)}
@@ -226,7 +226,7 @@ export default function ChallengeCard({
                     </motion.div>
                   </AnimatePresence>
                 </button>
-              </div>
+              </div> */}
             </>
           )}
           {status === "completed" && !auth.isLoggedIn && (
@@ -252,7 +252,7 @@ export default function ChallengeCard({
               disabled={isLoading}
             />
           )}
-          {status === "claimed" && (
+          {/* {status === "claimed" && (
             <div className="flex flex-col items-center gap-4 w-full">
               <Button
                 variant="primary"
@@ -280,7 +280,7 @@ export default function ChallengeCard({
                 />
               </Link>
             </div>
-          )}
+          )} */}
         </div>
       </div>
     </div>
