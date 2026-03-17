@@ -41,11 +41,11 @@ What is Staking? Staking is lending your tokens into a vault in exchange for a r
 
 Our mission, if you accept it, is to build a Solana program that:
 
-* Let users stake (lend) $🐮 to our program in exchange for $🥩.
-* Let users unstake (or redeem) their $🥩 for the original $🐮 and make a profit (or loss!) on it.
+* Let users stake (lend) \$🐮 to our program in exchange for \$🥩.
+* Let users unstake (or redeem) their \$🥩 for the original \$🐮 and make a profit (or loss!) on it.
 
 
-You might know that there are several ways to stake. In some dapps, your stakes are locked. In others, you don't even get a reward token. This article will focus on staking a $token in exchange for a $sToken where the value of $sToken increases over time by just holding it.
+You might know that there are several ways to stake. In some dapps, your stakes are locked. In others, you don't even get a reward token. This article will focus on staking a \$token in exchange for a \$sToken where the value of \$sToken increases over time by just holding it.
 
 
 ---
@@ -122,7 +122,7 @@ yarn install
 
 ###  🏗 An Attempt to Mint
 
-The main feature we want to build is staking. We need to exchange the user's $🐮 for $🥩. A $🐮 is what the users lend, while the $🥩 is the result of that lend. So it is a representation of their stake.
+The main feature we want to build is staking. We need to exchange the user's \$🐮 for \$🥩. A \$🐮 is what the users lend, while the \$🥩 is the result of that lend. So it is a representation of their stake.
 
 Let's start with this, how can our program mint 🥩 to the user?
 ![flow-minting.png](https://cdn.hashnode.com/res/hashnode/image/upload/v1648666109606/mOmsupwS2.png)
@@ -242,7 +242,7 @@ We need to prepare accounts to complete the minting of 🥩 for our staking inst
 
 The tokens need to exist before even letting users stake 🐮  or receive 🥩. The tokens need to exist first! So, before implementing our staker program, we need to work with the Solana blockchain. 
 
-The way to create a Solana Token Program (commonly called SPL Token) is to nicely ask the [SPL Token Program](https://spl.solana.com/token) to register our $beef and $stake token mint definition.
+The way to create a Solana Token Program (commonly called SPL Token) is to nicely ask the [SPL Token Program](https://spl.solana.com/token) to register our \$beef and \$stake token mint definition.
 
 > What does SPL mean? It stands for Solana Program Library -> "read Solana Helper Programs."
 
@@ -332,8 +332,8 @@ export {
 
 `authorityToAssign`: Mints have authority -> "read who owns that mint, who can print from that mint, who can destroy this currency." 
 
-- For the 🐮 beef mint, we need to ask ourselves, who should be able to print $beef tokens? It is not the staker program, nor is it the user. So for the authority, we can leave it as `beefMintKeypair.publicKey`, or you could use another `keypair` controlled by dev.
-- For the 🥩  stake mint, who should be able to print $stake tokens? The answer is the program. It should mint $stake to the users upon calling the `stake` function. For that reason, the `authority` of the stake mint should be the program.
+- For the 🐮 beef mint, we need to ask ourselves, who should be able to print \$beef tokens? It is not the staker program, nor is it the user. So for the authority, we can leave it as `beefMintKeypair.publicKey`, or you could use another `keypair` controlled by dev.
+- For the 🥩  stake mint, who should be able to print \$stake tokens? The answer is the program. It should mint \$stake to the users upon calling the `stake` function. For that reason, the `authority` of the stake mint should be the program.
 
 How do we achieve this? Accounts owned by programs need program-derived addresses. For this program derived address, we want to make sure it is related to the address of the 🥩 mint:
 ![pda-signing.png](https://cdn.hashnode.com/res/hashnode/image/upload/v1648666233618/48VQ7Cxpi.png)
@@ -747,7 +747,7 @@ token::MintTo {
 
 
 #### Token Bags = Owner + Mint
-The Token Program still does not want to do the mint! So we need to discuss something. Although we can simply send $sol to wallets in Solana, we cannot send SPL tokens (custom tokens) directly to a wallet address.
+The Token Program still does not want to do the mint! So we need to discuss something. Although we can simply send \$sol to wallets in Solana, we cannot send SPL tokens (custom tokens) directly to a wallet address.
 
 A wallet needs to have an *Associated Token Account* setup to receive a custom token. I will refer to *Associated Token Account* as *token bags* 💰 from now on. You can read more about the ATAP here: https://spl.solana.com/associated-token-account. What's important is that a Token Bag belongs to a user and holds a specific type of token.
 

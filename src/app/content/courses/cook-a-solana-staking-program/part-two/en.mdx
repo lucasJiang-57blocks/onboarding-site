@@ -7,7 +7,7 @@ This is part 2 of the [staking program](https://blog.mwrites.xyz/solana-staking-
 
 >  Remember, if you are an Etherean, ex etherean, or cyborg etherean-solanian 😁, please jump to the [EVM Comparison](https://blog.mwrites.xyz/solana-staking-program-part2#heading-review-andamp-evm-comparison) and copy-paste the section somewhere, and keep it along with you as you follow the article. That section was separated on purpose as I am not sure how many of you have the double skills.
 
-Let's do the second part of the staking. We now need to transfer $beef tokens from the user.
+Let's do the second part of the staking. We now need to transfer \$beef tokens from the user.
 ![staking-flow-transfer.png](https://cdn.hashnode.com/res/hashnode/image/upload/v1648666462023/Cs-9w-CbM.png)
 
 
@@ -39,9 +39,9 @@ Remember, to fully understand how a Solana program works. We better try to look 
 
 *This was done in part 1.*
 
-**2 Completing the staking with the $beef transfer:**
+**2 Completing the staking with the \$beef transfer:**
 
-In this episode, we will make users pay $beef!
+In this episode, we will make users pay \$beef!
 
 **3. Unstake:**
 
@@ -60,9 +60,9 @@ Please don't try to copy-paste any of the code here. It probably won't compile. 
 
 **Got some beef?**
 
-Previously we have already created the🐮 token mint. Our tokens now exist in the blockchain (at least in our local ledger). It is not time to work on our program yet. Why? Our staker program takes $beef tokens and rewards our users with stake tokens. But how do users get $beef in the first place?
+Previously we have already created the🐮 token mint. Our tokens now exist in the blockchain (at least in our local ledger). It is not time to work on our program yet. Why? Our staker program takes \$beef tokens and rewards our users with stake tokens. But how do users get \$beef in the first place?
 
-Have you ever noticed that almost all DeFi apps have a swap feature on the home page? So if we were to build a complete DeFi app, users would start by swapping their $sol for 🐮 tokens. Then they would be able to stake their 🐮 tokens.
+Have you ever noticed that almost all DeFi apps have a swap feature on the home page? So if we were to build a complete DeFi app, users would start by swapping their \$sol for 🐮 tokens. Then they would be able to stake their 🐮 tokens.
 
 ![orca-swap](https://cdn.hashnode.com/res/hashnode/image/upload/v1648666515914/uRYGltdHk.png)
 *[Orca Swap](https://www.orca.so/)*
@@ -70,13 +70,13 @@ Have you ever noticed that almost all DeFi apps have a swap feature on the home 
 
 **Airdrop**
 
-Since we are in Solana, users usually start with $sol, so when they go to our Staking or DEX  application, users would first need to swap their $sol for another crypto token. **To simplify this article and make testing easier, we will just airdrop the 🐮 tokens directly to users.**
+Since we are in Solana, users usually start with \$sol, so when they go to our Staking or DEX  application, users would first need to swap their \$sol for another crypto token. **To simplify this article and make testing easier, we will just airdrop the 🐮 tokens directly to users.**
 
 For our tests, we are using ourselves as guinea pig users. So you or I will be the one receiving the 🐮 tokens.
 
 > This part is not crucial to the article. However, if you want, look at  `scripts/airdrop-beef.ts` to understand how to do it.
 
-So, we usually would airdrop $beef to users before they arrive in our application. So, let's do that in the tests:
+So, we usually would airdrop \$beef to users before they arrive in our application. So, let's do that in the tests:
 
 ```
 import { airdropBeef } from "../scripts/airdrop-beef";
@@ -190,7 +190,7 @@ token::transfer(cpi_ctx, beef_amount)?;
 
 
 
-### 🐮 Withdrawing $Beef From Users
+### 🐮 Withdrawing \$Beef From Users
 
 #### Rust - `token::Transfer`
 
@@ -275,7 +275,7 @@ token::Burn {
 
 
 
-###  🔥 Burning Users' $Stakes
+###  🔥 Burning Users' \$Stakes
 
 * Left side: implementation.
 * Right side: what kind of accounts the API expects.
@@ -291,7 +291,7 @@ Let's discuss `token::Burn` (left side):
   
 
 
-###  🤠 Refunding $Beef To Users
+###  🤠 Refunding \$Beef To Users
 
 **Rust-Side**
 
@@ -376,8 +376,8 @@ These 🥒 ingredients will be the foundation of your core skills which you can 
 Learning how to prepare and chop these ingredients was the most challenging part, but after mastering these, we were able to quickly unroll the rest, the transfer, and the redeeming feature.
 
 🌈 Going further, the front-end is basically done. You just have to take the js code from the tests and let users connect their wallets with a [wallet-adapter](https://github.com/solana-labs/wallet-adapter). Not sure how to do it? 
-- Take a look at this [front-end walkthrough](https://blog.mwrites.xyz/solana-dapp-frontendl). You also might want to add the swap feature and avoid the awkward $beef airdrop we did.
-- Or you can try to let users stake $sol instead of 🐮, try to implement it, and see what's different about staking $sol.
+- Take a look at this [front-end walkthrough](https://blog.mwrites.xyz/solana-dapp-frontendl). You also might want to add the swap feature and avoid the awkward \$beef airdrop we did.
+- Or you can try to let users stake \$sol instead of 🐮, try to implement it, and see what's different about staking \$sol.
 - Also, you might want to name your token by adding token, Jacob Creech explains [how to use the metaplex token metadata standard](https://github.com/jacobcreech/Token-Creator#adding-the-token-metadata)
 
 Grab a coffee, a beer, water, look at the sunshine take a breath, pat yourself, look at how handsome or pretty you are in the mirror 🤩. Then, come back for the next sections below!
@@ -545,7 +545,7 @@ This is part 2 of the [staking program](https://blog.mwrites.xyz/solana-staking-
 
 >  Remember, if you are an Etherean, ex etherean, or cyborg etherean-solanian 😁, please jump to the [EVM Comparison](https://blog.mwrites.xyz/solana-staking-program-part2#heading-review-andamp-evm-comparison) and copy-paste the section somewhere, and keep it along with you as you follow the article. That section was separated on purpose as I am not sure how many of you have the double skills.
 
-Let's do the second part of the staking. We now need to transfer $beef tokens from the user.
+Let's do the second part of the staking. We now need to transfer \$beef tokens from the user.
 ![staking-flow-transfer.png](https://cdn.hashnode.com/res/hashnode/image/upload/v1648666462023/Cs-9w-CbM.png)
 
 
@@ -577,9 +577,9 @@ Remember, to fully understand how a Solana program works. We better try to look 
 
 *This was done in part 1.*
 
-**2 Completing the staking with the $beef transfer:**
+**2 Completing the staking with the \$beef transfer:**
 
-In this episode, we will make users pay $beef!
+In this episode, we will make users pay \$beef!
 
 **3. Unstake:**
 
@@ -598,9 +598,9 @@ Please don't try to copy-paste any of the code here. It probably won't compile. 
 
 **Got some beef?**
 
-Previously we have already created the🐮 token mint. Our tokens now exist in the blockchain (at least in our local ledger). It is not time to work on our program yet. Why? Our staker program takes $beef tokens and rewards our users with stake tokens. But how do users get $beef in the first place?
+Previously we have already created the🐮 token mint. Our tokens now exist in the blockchain (at least in our local ledger). It is not time to work on our program yet. Why? Our staker program takes \$beef tokens and rewards our users with stake tokens. But how do users get \$beef in the first place?
 
-Have you ever noticed that almost all DeFi apps have a swap feature on the home page? So if we were to build a complete DeFi app, users would start by swapping their $sol for 🐮 tokens. Then they would be able to stake their 🐮 tokens.
+Have you ever noticed that almost all DeFi apps have a swap feature on the home page? So if we were to build a complete DeFi app, users would start by swapping their \$sol for 🐮 tokens. Then they would be able to stake their 🐮 tokens.
 
 ![orca-swap](https://cdn.hashnode.com/res/hashnode/image/upload/v1648666515914/uRYGltdHk.png)
 *[Orca Swap](https://www.orca.so/)*
@@ -608,13 +608,13 @@ Have you ever noticed that almost all DeFi apps have a swap feature on the home 
 
 **Airdrop**
 
-Since we are in Solana, users usually start with $sol, so when they go to our Staking or DEX  application, users would first need to swap their $sol for another crypto token. **To simplify this article and make testing easier, we will just airdrop the 🐮 tokens directly to users.**
+Since we are in Solana, users usually start with \$sol, so when they go to our Staking or DEX  application, users would first need to swap their \$sol for another crypto token. **To simplify this article and make testing easier, we will just airdrop the 🐮 tokens directly to users.**
 
 For our tests, we are using ourselves as guinea pig users. So you or I will be the one receiving the 🐮 tokens.
 
 > This part is not crucial to the article. However, if you want, look at  `scripts/airdrop-beef.ts` to understand how to do it.
 
-So, we usually would airdrop $beef to users before they arrive in our application. So, let's do that in the tests:
+So, we usually would airdrop \$beef to users before they arrive in our application. So, let's do that in the tests:
 
 ```
 import { airdropBeef } from "../scripts/airdrop-beef";
@@ -728,7 +728,7 @@ token::transfer(cpi_ctx, beef_amount)?;
 
 
 
-### 🐮 Withdrawing $Beef From Users
+### 🐮 Withdrawing \$Beef From Users
 
 #### Rust - `token::Transfer`
 
@@ -813,7 +813,7 @@ token::Burn {
 
 
 
-###  🔥 Burning Users' $Stakes
+###  🔥 Burning Users' \$Stakes
 
 * Left side: implementation.
 * Right side: what kind of accounts the API expects.
@@ -829,7 +829,7 @@ Let's discuss `token::Burn` (left side):
   
 
 
-###  🤠 Refunding $Beef To Users
+###  🤠 Refunding \$Beef To Users
 
 **Rust-Side**
 
@@ -914,8 +914,8 @@ These 🥒 ingredients will be the foundation of your core skills which you can 
 Learning how to prepare and chop these ingredients was the most challenging part, but after mastering these, we were able to quickly unroll the rest, the transfer, and the redeeming feature.
 
 🌈 Going further, the front-end is basically done. You just have to take the js code from the tests and let users connect their wallets with a [wallet-adapter](https://github.com/solana-labs/wallet-adapter). Not sure how to do it? 
-- Take a look at this [front-end walkthrough](https://blog.mwrites.xyz/solana-dapp-frontendl). You also might want to add the swap feature and avoid the awkward $beef airdrop we did.
-- Or you can try to let users stake $sol instead of 🐮, try to implement it, and see what's different about staking $sol.
+- Take a look at this [front-end walkthrough](https://blog.mwrites.xyz/solana-dapp-frontendl). You also might want to add the swap feature and avoid the awkward \$beef airdrop we did.
+- Or you can try to let users stake \$sol instead of 🐮, try to implement it, and see what's different about staking \$sol.
 - Also, you might want to name your token by adding token, Jacob Creech explains [how to use the metaplex token metadata standard](https://github.com/jacobcreech/Token-Creator#adding-the-token-metadata)
 
 Grab a coffee, a beer, water, look at the sunshine take a breath, pat yourself, look at how handsome or pretty you are in the mirror 🤩. Then, come back for the next sections below!
