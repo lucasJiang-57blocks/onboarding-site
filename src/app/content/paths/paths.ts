@@ -19,6 +19,7 @@ export const paths: PathMetadata[] = [
       // { type: "course", slug: "introduction-to-uniswap" },
       // { type: "challenge", slug: "anchor-uniswap-v2" },
       { type: "course", slug: "cook-a-solana-staking-program" },
+      { type: "course", slug: "program-security" },
       { type: "challenge", slug: "solana-staking-program" },
     ],
   },

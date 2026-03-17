@@ -84,12 +84,30 @@ To pass the challenge, you should be able to demonstrate:
 
 - You may follow the [Cook a Solana Staking Program](/courses/cook-a-solana-staking-program) course structure (Part 1: mints + minting stake tokens; Part 2: vault + transfer in, then unstake with burn + transfer out). Your solution should reflect the same concepts: **SPL Token**, **PDA**, **ATA**, and **CPI** as in the course.
 
+#### 4. Matching Frontend UI
+
+- **Frontend:** Provide a frontend UI (e.g. with wallet-adapter) that allows users to connect a wallet, stake input tokens, and unstake (burn stake tokens and receive input tokens back) on devnet. The UI should demonstrate the same stake/unstake flow as the program.
+
+#### 5. Program Security
+
+- **Account validation:** All instruction accounts are validated (correct owners, mints, token accounts). Only the program’s PDA can act as mint authority and vault authority.
+- **Signer checks:** User is required as signer for stake (transfer) and unstake (burn); no one can move another user’s tokens without authorization.
+- **Vault & CPI safety:** Outgoing transfers from the vault use the vault PDA as signer; no other account can drain the vault. Amounts are checked to prevent over-mint, over-transfer, or over-burn (e.g. no overflow/underflow, balance checks where relevant).
+- **Documentation:** Briefly document how the program enforces the above (e.g. in README or comments).
+
+#### 6. Technical Design Document
+
+- **Design doc:** Produce a technical design document that describes architecture, account model (mints, vault, PDAs), instruction flows (stake / unstake), CPI usage, and security considerations. It should be sufficient for a reviewer to understand the solution before reading the code.
+
+#### 7. Code Review
+
+- **Final code review:** Organize and run a code review meeting (e.g. with a mentor or peer) to walk through the program and frontend. Submit or document the outcome (e.g. review notes, action items, or sign-off) as part of the challenge deliverable.
+
 ---
 
 <ArticleSection name="Stretch Goals" id="stretch" level="h2" />
 
 - **Reward model:** Instead of 1:1 stake/unstake, implement a simple reward (e.g. stake token value increases over time, or fixed multiplier when unstaking).
 - **Initialize instruction:** Add an explicit `initialize` that creates the program vault (PDA token account) and stores config (e.g. input mint, stake mint) in a global state account.
-- **Frontend:** Add a minimal UI (e.g. with wallet-adapter) to connect, stake, and unstake on devnet.
 
 Once you have a working stake/unstake flow and can explain PDAs and CPIs, you’ve met the core challenge. The course is there to guide you through each ingredient step by step.
