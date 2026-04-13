@@ -11,7 +11,12 @@ This challenge aligns with the [Cook a Solana Staking Program](/courses/cook-a-s
 **Goal:** Implement a Solana program (with **Anchor**) that:
 
 1. **Stake** — User sends **input tokens** (e.g. \$BEEF) to a **program-owned vault**; the program **mints** an equal (or ratio-based) amount of **stake tokens** (e.g. \$STAKE) to the user.
-2. **Unstake** — User **burns** \$STAKE; the program **transfers** the corresponding \$BEEF from the vault back to the user (1:1 or with a simple reward model).
+2. **Unstake** — User **burns** \$STAKE; the program **transfers** the corresponding \$BEEF from the vault back to the user.
+3. **Rewards System** - Use SushiSwap MasterChef Rewards Design Model, four specific requirements about the rewards system:
+ - **New Reward Token**: We will need to create a new SPL token for the rewards (e.g., $MILK or whatever fun name you prefer!).
+ - **No Big Loops**: When calculating user rewards, please avoid using large loops to iterate through all users, as that will easily hit the compute unit (gas) limits on-chain.
+ - **Dynamic Reward Emission**: The design should account for dynamic changes in the total pool reward distribution over time. For example, in real-world scenarios, the emission rate is usually higher when the pool is first created, and gradually decreases as the pool gets older. How would you implement this dynamic rate?
+ - **Separation of Principal and Rewards**: The staking principal and the generated rewards need to be decoupled. A user should be allowed to interact with just their principal (e.g., unstake a portion of their staked tokens) without being forced to claim rewards, and they can simply claim their accumulated rewards later.
 
 You will use the **SPL Token Program** via **Cross-Program Invocation (CPI)** for minting, transferring, and burning. The program must hold input tokens in a **program-derived** token account (vault) and use **PDAs** for mint authority and vault signing.
 
@@ -107,7 +112,6 @@ To pass the challenge, you should be able to demonstrate:
 
 <ArticleSection name="Stretch Goals" id="stretch" level="h2" />
 
-- **Reward model:** Instead of 1:1 stake/unstake, implement a simple reward (e.g. stake token value increases over time, or fixed multiplier when unstaking).
 - **Initialize instruction:** Add an explicit `initialize` that creates the program vault (PDA token account) and stores config (e.g. input mint, stake mint) in a global state account.
 
 Once you have a working stake/unstake flow and can explain PDAs and CPIs, you’ve met the core challenge. The course is there to guide you through each ingredient step by step.
